@@ -1,19 +1,21 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import cv2
 
 from app.services.history_service import HistoryService
-from app.services.inference_service import InferenceService
 from app.services.result_service import ResultService
 from app.utils.vis_utils import build_explainability_panel
+
+if TYPE_CHECKING:
+    from app.services.inference_service import InferenceService
 
 
 class VideoService:
     def __init__(
         self,
-        inference_service: InferenceService,
+        inference_service: "InferenceService",
         history_service: HistoryService,
         result_service: ResultService,
     ):
