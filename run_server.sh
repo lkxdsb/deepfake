@@ -6,8 +6,8 @@ APP_HOST=${APP_HOST:-0.0.0.0}
 APP_PORT=${APP_PORT:-8000}
 
 export OMP_NUM_THREADS=8
-export MODEL_CFG_PATH=logs/r8cjqozi/setting.yaml
-export MODEL_CKPT_PATH=logs/r8cjqozi/checkpoints/epoch=9-step=11220.ckpt
+export MODEL_CFG_PATH=logs/2t2rpckz/setting.yaml
+export MODEL_CKPT_PATH=logs/2t2rpckz/checkpoints/epoch=9-step=11220.ckpt
 export OUTPUT_ROOT=./outputs
 
 export VIDEO_CLIP_STEP=4
