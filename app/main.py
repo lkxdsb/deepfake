@@ -32,6 +32,10 @@ def startup_event() -> None:
     services.result_service.prepare_dirs()
     services.history_service.init_db()
 
+    if settings.frontend_only:
+        logging.info("Frontend-only mode enabled, skipping model warmup")
+        return
+
     try:
         services.inference_service.warmup()
         logging.info("Model warmup completed")

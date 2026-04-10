@@ -16,6 +16,7 @@ class Settings:
     app_host: str
     app_port: int
     app_reload: bool
+    frontend_only: bool
     model_cfg_path: Path
     model_ckpt_path: Path
     output_root: Path
@@ -68,6 +69,7 @@ def load_settings() -> Settings:
         app_host=os.getenv("APP_HOST", "0.0.0.0"),
         app_port=int(os.getenv("APP_PORT", "8000")),
         app_reload=_env_bool("APP_RELOAD", True),
+        frontend_only=_env_bool("FRONTEND_ONLY", False),
         model_cfg_path=Path(
             os.getenv(
                 "MODEL_CFG_PATH",
