@@ -1,0 +1,52 @@
+﻿{% extends "base.html" %}
+{% block title %}视频检测{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>视频检测</h2>
+  <p class="small-note">支持格式：mp4 / avi / mov / mkv，支持单条和批量上传</p>
+  <form id="video-form">
+    <label class="field-label" for="video-batch-name">任务名（批量时建议填写）</label>
+    <input class="text-input" type="text" id="video-batch-name" placeholder="例如：答辩视频样例集">
+    <label class="field-label" for="video-file">选择文件</label>
+    <input type="file" id="video-file" accept=".mp4,.avi,.mov,.mkv" multiple required>
+    <button type="submit">开始检测</button>
+  </form>
+  <p id="status" class="small-note"></p>
+</div>
+
+<script>
+document.getElementById('video-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const status = document.getElementById('status');
+  const fileInput = document.getElementById('video-file');
+  const batchNameInput = document.getElementById('video-batch-name');
+  if (!fileInput.files.length) {
+    status.textContent = '请先选择视频文件';
+    return;
+  }
+
+  const fd = new FormData();
+  for (const file of fileInput.files) {
+    fd.append('files', file);
+  }
+  if (batchNameInput.value.trim()) {
+    fd.append('batch_name', batchNameInput.value.trim());
+  }
+  status.className = 'small-note';
+  status.textContent = `检测中，共 ${fileInput.files.length} 个视频，处理时间会更长，请稍候...`;
+
+  try {
+    const res = await fetch('/api/detect/video', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok || data.code !== 0) {
+      throw new Error(data.message || 'detect failed');
+    }
+    const targetTaskId = data.data.batch_task_id || data.data.task_id;
+    window.location.href = `/results/${targetTaskId}`;
+  } catch (err) {
+    status.textContent = `检测失败：${err.message}`;
+    status.className = 'error';
+  }
+});
+</script>
+{% endblock %}

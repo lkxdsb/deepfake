@@ -1,0 +1,23 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Deepfake Detection{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="/" class="brand">Deepfake Detection MVP</a>
+    <nav class="nav">
+      <a href="/detect/image">图片检测</a>
+      <a href="/detect/video">视频检测</a>
+      <a href="/detect/audio">音频检测</a>
+      <a href="/history">历史记录</a>
+    </nav>
+  </header>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

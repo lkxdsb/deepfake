@@ -1,0 +1,24 @@
+\subsection{Temporal Modeling Decoder}
+
+To capture temporal artifacts and inconsistencies across frames, we design an efficient bidirectional spatio-temporal decoder, referred to as the Bi-ST decoder, composed of $K=4$ stacked layers. Each layer processes the features along the temporal dimension while maintaining computational efficiency.
+
+First, a depthwise temporal convolution is applied to model short-term motion patterns, followed by learnable temporal position embeddings to preserve frame ordering. To further capture long-range temporal dependencies, the proposed bidirectional spatio-temporal decoder (Bi-ST) models temporal relations in both forward and backward directions, enabling the detection of unnatural temporal transitions and causality violations commonly introduced by deepfake generation.
+
+For each decoder layer $i$, given the input features $\mathbf{X}_i \in \mathbb{R}^{B \times T \times N \times D}$ from the $i$-th encoder layer, the bidirectional temporal cross attention mechanism computes inter-frame relationships as:
+
+\begin{equation}
+\begin{split}
+\mathbf{F}_i = \mathbf{X}_i + \mathbf{P}_i + \sum_{\tau=1}^{T-1} \sum_{j,\ell=1}^{N-1} \Big[ \phi^{(j,\ell)}_{\tau \rightarrow \tau+1} \mathbf{W}_1[\Delta(j,\ell)] \\
++ \phi^{(j,\ell)}_{\tau+1 \rightarrow \tau} \mathbf{W}_2[\Delta(j,\ell)] \Big]
+\end{split}
+\end{equation}
+
+where $\mathbf{P}_i \in \mathbb{R}^{T \times D}$ denotes the temporal position embeddings. The temporal correlation coefficients $\phi_{\tau \rightarrow \tau'}^{(j,\ell)}$ quantify the similarity between spatial locations $j$ and $\ell$ across temporal instants $\tau$ and $\tau'$:
+
+\begin{equation}
+\phi_{\tau \rightarrow \tau'}^{(j,\ell)} = \frac{\kappa(\mathbf{f}(\tau, j), \mathbf{f}(\tau', \ell))}{\sum_{\ell'=1}^{N-1} \kappa(\mathbf{f}(\tau, j), \mathbf{f}(\tau', \ell'))}
+\end{equation}
+
+where $\kappa: \mathbb{R}^d \times \mathbb{R}^d \rightarrow \mathbb{R}^+$ is a positive-definite similarity kernel that measures the affinity between feature vectors in the embedding space, and $\mathbf{f}(\tau, j), \mathbf{f}(\tau', \ell) \in \mathbb{R}^d$ are the feature representations at spatial position $j$ and $\ell$ for temporal instants $\tau$ and $\tau'$, respectively, obtained from the encoder. The learnable weight matrices $\mathbf{W}_1, \mathbf{W}_2 \in \mathbb{R}^{(2H_s-1)(2W_s-1) \times D}$ encode relative spatial-temporal relationships, indexed by the relative spatial offset $\Delta(j,\ell)$ between spatial positions.
+
+The bidirectional design allows the model to detect unnatural temporal transitions as well as causality violations. After temporal modeling, CASE is applied and features are aggregated via a learnable query token $\mathbf{q}$ that iteratively attends to multi-scale temporal features across decoder layers, yielding the final video-level representation $\mathbf{q}_K$ for classification.

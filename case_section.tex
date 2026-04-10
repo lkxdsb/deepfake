@@ -1,0 +1,30 @@
+\subsection{Component-Aware Spatial Enhancement}
+
+Deepfake artifacts are often localized in specific facial regions such as the eyes, mouth, and skin, while inconsistencies between global facial structure and local details also provide strong cues. To exploit these properties, we introduce the Component-Aware Spatial Enhancement (CASE) module, which integrates Facial Component Guidance (FCG) into Cross-Component Self-Attention (CCSA).
+
+Given the input features $\mathbf{X} \in \mathbb{R}^{B \times T \times N \times D}$, the CASE module enhances spatial representations through a two-stage process. First, component-guided feature weighting is performed using semantic masks $\mathcal{M} = \{M_c : c \in \mathcal{C}\}$ extracted from a pre-trained face parser, where $\mathcal{C} = \{\text{eye}, \text{nose}, \text{mouth}, \text{skin}\}$ denotes the set of facial components. For each component $c \in \mathcal{C}$, we define a weighting function $\omega_c: \mathbb{R}^D \rightarrow \mathbb{R}^+$ that assigns importance to spatial locations based on their semantic relevance, and aggregate the component-guided features as:
+
+\begin{equation}
+\mathbf{X}_{\text{FCG}} = \sum_{c \in \mathcal{C}} \lambda_c \sum_{j=1}^{N-1} \frac{\exp(\mathbf{W}_c \mathbf{x}_j + b_c)}{\sum_k \exp(\mathbf{W}_c \mathbf{x}_k + b_c)} M_c(j) \mathbf{x}_j
+\end{equation}
+
+where $\mathbf{W}_c \in \mathbb{R}^{D \times D}$ and $b_c \in \mathbb{R}$ are learnable parameters, $M_c(j) \in \{0,1\}$ is the component mask, and $\lambda_c \in \mathbb{R}^+$ are learnable component importance weights.
+
+Second, cross-component interaction is modeled through bidirectional information exchange between global and local representations. Let $\mathbf{g} \in \mathbb{R}^D$ denote the global representation and $\{\mathbf{l}_j \in \mathbb{R}^D : j = 1, \ldots, N-1\}$ denote the local patch representations. The interaction is formulated as:
+
+\begin{equation}
+\begin{split}
+\mathbf{g}' = \mathbf{g} + \sum_{j=1}^{N-1} \frac{\kappa(\mathbf{g}, \mathbf{l}_j)}{\sum_k \kappa(\mathbf{g}, \mathbf{l}_k)} \mathbf{l}_j \\
+\mathbf{l}'_j = \mathbf{l}_j + \frac{\kappa(\mathbf{l}_j, \mathbf{g})}{\sum_k \kappa(\mathbf{l}_k, \mathbf{g})} \mathbf{g}
+\end{split}
+\end{equation}
+
+where $\kappa: \mathbb{R}^D \times \mathbb{R}^D \rightarrow \mathbb{R}^+$ is a positive-definite kernel function that measures feature affinity in the embedding space. The enhanced features $\mathbf{X}_{\text{CCSA}}$ are obtained by concatenating the updated global and local representations.
+
+The final CASE output combines both mechanisms:
+
+\begin{equation}
+\mathbf{X}_{\text{CASE}} = \mathbf{X}_{\text{CCSA}} + \beta \mathbf{X}_{\text{FCG}}
+\end{equation}
+
+where $\beta \in \mathbb{R}$ is a learnable parameter that balances the contributions of component guidance and cross-component interaction. This integration enables the model to simultaneously focus on discriminative facial components and maintain global-local coherence, which is essential for robust deepfake detection.

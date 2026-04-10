@@ -1,0 +1,225 @@
+﻿{% extends "base.html" %}
+{% block title %}检测结果{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="section-head">
+    <div>
+      <h2>{% if batch and batch.item_count > 1 %}批量检测结果{% else %}检测结果{% endif %}</h2>
+      {% if batch %}
+        <p class="small-note">任务名：{{ batch.batch_name }} | 任务 ID：{{ batch.task_id }}</p>
+      {% endif %}
+    </div>
+    {% if batch and batch.item_count > 1 %}
+      <div class="pager-toolbar">
+        <span id="page-indicator" class="badge"></span>
+        <button type="button" class="secondary" id="prev-btn">上一条</button>
+        <button type="button" id="next-btn">下一条</button>
+      </div>
+    {% endif %}
+  </div>
+  {% if batch %}
+    <div class="batch-meta">
+      <span class="meta-pill">类型：{{ batch.file_type }}</span>
+      <span class="meta-pill">文件数：{{ batch.item_count }}</span>
+      <span class="meta-pill">可疑数：{{ batch.fake_count }}</span>
+      <span class="meta-pill">总耗时：{{ '%.4f'|format(batch.total_inference_time) }}s</span>
+    </div>
+    {% if batch.item_count > 1 %}
+      <p class="small-note">结果区支持滑动翻页：右滑查看下一条，左滑查看上一条。</p>
+    {% endif %}
+  {% else %}
+    <p class="error">未找到结果数据。</p>
+  {% endif %}
+</div>
+
+{% if items and items|length > 0 %}
+<div id="result-viewer" class="result-viewer">
+  {% for item in items %}
+  <section class="result-page{% if loop.first %} active{% endif %}" data-index="{{ loop.index0 }}">
+    <div class="card">
+      <div class="section-head">
+        <h3>第 {{ loop.index }} 条结果</h3>
+        <span class="small-note">{{ item.record.file_name }}</span>
+      </div>
+      <div class="kv">
+        <div>文件名</div><div>{{ item.result.file_name }}</div>
+        <div>文件类型</div><div>{{ item.result.file_type }}</div>
+        <div>判定结果</div>
+        <div>
+          {% if item.result.label == 'fake' %}
+            <span class="label-fake">FAKE</span>
+          {% else %}
+            <span class="label-real">REAL</span>
+          {% endif %}
+        </div>
+        <div>置信度</div><div>{{ '%.4f'|format(item.result.score) }}</div>
+        <div>推理耗时</div><div>{{ '%.4f'|format(item.result.inference_time) }}s</div>
+        <div>模型版本</div><div>{{ item.result.model_name }}</div>
+        {% if item.result.raw_score is defined and item.result.raw_score is not none %}
+        <div>原始分数(raw_score)</div><div>{{ '%.4f'|format(item.result.raw_score) }}</div>
+        {% endif %}
+        {% if item.result.threshold is defined and item.result.threshold is not none %}
+        <div>判定阈值(threshold)</div><div>{{ '%.4f'|format(item.result.threshold) }}</div>
+        {% endif %}
+        {% if item.result.duration_sec is defined and item.result.duration_sec is not none %}
+        <div>音频时长</div><div>{{ '%.3f'|format(item.result.duration_sec) }}s</div>
+        {% endif %}
+        {% if item.result.best_clip_index is defined and item.result.best_clip_index is not none %}
+        <div>最佳片段索引</div><div>{{ item.result.best_clip_index }}</div>
+        {% endif %}
+        {% if item.result.total_frames is defined and item.result.total_frames is not none %}
+        <div>总帧数</div><div>{{ item.result.total_frames }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if item.result.preview_url %}
+    <div class="card">
+      <h3>预览</h3>
+      {% if item.result.file_type == 'audio' %}
+        <audio controls style="width:100%;max-width:720px;">
+          <source src="{{ item.result.preview_url }}">
+          你的浏览器不支持音频播放。
+        </audio>
+        <p class="small-note">音频判定规则：raw_score &lt; threshold 判为 fake。</p>
+      {% else %}
+        <img class="preview-img" src="{{ item.result.preview_url }}" alt="preview">
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if item.result.heatmap_url %}
+    <div class="card">
+      <h3>可解释热力图</h3>
+      <img class="preview-img" src="{{ item.result.heatmap_url }}" alt="heatmap">
+    </div>
+    {% endif %}
+
+    {% if item.result.curve_url %}
+    <div class="card">
+      <h3>帧级概率曲线</h3>
+      <img class="preview-img" src="{{ item.result.curve_url }}" alt="curve">
+    </div>
+    {% endif %}
+
+    {% if item.result.keyframes and item.result.keyframes|length > 0 %}
+    <div class="card">
+      <h3>关键帧</h3>
+      <div class="grid">
+        {% for url in item.result.keyframes %}
+          <img class="preview-img" src="{{ url }}" alt="keyframe-{{ loop.index }}">
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if item.result.frame_results and item.result.frame_results|length > 0 %}
+    <div class="card">
+      <h3>帧级结果摘要</h3>
+      <table class="table">
+        <thead>
+          <tr><th>Clip</th><th>Score</th><th>Label</th></tr>
+        </thead>
+        <tbody>
+          {% for frame in item.result.frame_results[:20] %}
+            <tr>
+              <td>{{ frame.clip_index }}</td>
+              <td>{{ frame.score }}</td>
+              <td>{{ frame.label }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="small-note">仅展示前 20 条。</p>
+    </div>
+    {% endif %}
+  </section>
+  {% endfor %}
+</div>
+
+<script>
+const slides = Array.from(document.querySelectorAll('.result-page'));
+const viewer = document.getElementById('result-viewer');
+const prevBtn = document.getElementById('prev-btn');
+const nextBtn = document.getElementById('next-btn');
+const indicator = document.getElementById('page-indicator');
+let currentIndex = {{ initial_index|default(0) }};
+let swipeStartX = null;
+
+function clampIndex(nextIndex) {
+  if (!slides.length) return 0;
+  return Math.max(0, Math.min(nextIndex, slides.length - 1));
+}
+
+function renderSlide(nextIndex) {
+  currentIndex = clampIndex(nextIndex);
+  slides.forEach((slide, index) => {
+    slide.classList.toggle('active', index === currentIndex);
+  });
+
+  if (indicator) {
+    indicator.textContent = `${currentIndex + 1} / ${slides.length}`;
+  }
+  if (prevBtn) {
+    prevBtn.disabled = currentIndex === 0;
+  }
+  if (nextBtn) {
+    nextBtn.disabled = currentIndex === slides.length - 1;
+  }
+
+  const url = new URL(window.location.href);
+  url.searchParams.set('index', String(currentIndex));
+  window.history.replaceState({}, '', url);
+}
+
+function moveSlide(step) {
+  renderSlide(currentIndex + step);
+}
+
+if (prevBtn) {
+  prevBtn.addEventListener('click', () => moveSlide(-1));
+}
+if (nextBtn) {
+  nextBtn.addEventListener('click', () => moveSlide(1));
+}
+
+if (viewer) {
+  viewer.addEventListener('touchstart', (event) => {
+    swipeStartX = event.changedTouches[0].clientX;
+  }, { passive: true });
+
+  viewer.addEventListener('touchend', (event) => {
+    if (swipeStartX === null) return;
+    const deltaX = event.changedTouches[0].clientX - swipeStartX;
+    if (Math.abs(deltaX) >= 50) {
+      if (deltaX > 0) {
+        moveSlide(1);
+      } else {
+        moveSlide(-1);
+      }
+    }
+    swipeStartX = null;
+  }, { passive: true });
+
+  viewer.addEventListener('pointerdown', (event) => {
+    swipeStartX = event.clientX;
+  });
+
+  viewer.addEventListener('pointerup', (event) => {
+    if (swipeStartX === null) return;
+    const deltaX = event.clientX - swipeStartX;
+    if (Math.abs(deltaX) >= 50) {
+      if (deltaX > 0) {
+        moveSlide(1);
+      } else {
+        moveSlide(-1);
+      }
+    }
+    swipeStartX = null;
+  });
+}
+
+renderSlide(currentIndex);
+</script>
+{% endif %}
+{% endblock %}

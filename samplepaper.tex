@@ -1,0 +1,462 @@
+% This is samplepaper.tex, a sample chapter demonstrating the
+% LLNCS macro package for Springer Computer Science proceedings;
+% Version 2.21 of 2022/01/12
+%
+\documentclass[runningheads]{llncs}
+%
+\usepackage[T1]{fontenc}
+% T1 fonts will be used to generate the final print and online PDFs,
+% so please use T1 fonts in your manuscript whenever possible.
+% Other font encondings may result in incorrect characters.
+%
+\usepackage{graphicx}
+
+% Used for displaying a sample figure. If possible, figure files should
+% be included in EPS format.
+%
+% If you use the hyperref package, please uncomment the following two lines
+% to display URLs in blue roman font according to Springer's eBook style:
+%\usepackage{color}
+%\renewcommand\UrlFont{\color{blue}\rmfamily}
+%\urlstyle{rm}
+%
+% preamble
+\usepackage{enumitem}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{colortbl}
+\usepackage{array}
+\usepackage{tabularx} 
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{placeins}
+\usepackage{xcolor}
+\usepackage{cite}
+\usepackage{placeins}
+
+\raggedbottom
+
+\setlength{\textfloatsep}{8pt plus 1pt minus 2pt}
+\setlength{\floatsep}{6pt plus 1pt minus 2pt}
+\setlength{\intextsep}{6pt plus 1pt minus 2pt}
+
+\setcounter{topnumber}{3}
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.85}
+
+\newcolumntype{P}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{Y}{>{\centering\arraybackslash}X}
+
+\begin{document}
+%
+\title{Component-Aware Spatio-Temporal Adaptation of Frozen Foundation Models for Video Deepfake Detection}
+%
+%\titlerunning{Abbreviated paper title}
+% If the paper title is too long for the running head, you can set
+% an abbreviated paper title here
+%
+\author{Anonymous ICIC submission}
+\institute{~}
+
+% \authorrunning{F. Author et al.}
+% First names are abbreviated in the running head.
+% If there are more than two authors, 'et al.' is used.
+%
+% \institute{Princeton University, Princeton NJ 08544, USA \and
+% Springer Heidelberg, Tiergartenstr. 17, 69121 Heidelberg, Germany
+% \email{lncs@springer.com}\\
+% \url{http://www.springer.com/gp/computer-science/lncs} \and
+% ABC Institute, Rupert-Karls-University Heidelberg, Heidelberg, Germany\\
+% \email{\{abc,lncs\}@uni-heidelberg.de}}
+%
+\maketitle              % typeset the header of the contribution
+%
+% \section{Todo}
+% 3. Can we write the highest value (with different parameters) for each dataset in the "ours" column of Table 1? \\
+% 4. The issue of decimal place retention in ablation experiments.\\
+% 5. check whether if the sentences is the same as the table2?
+% 6. check the number in table1 2
+% 7. add image
+
+
+\begin{abstract}
+The advancement of deep generative models facilitates realistic synthetic facial videos, threatening social trust and digital security. Existing detection methods achieve strong in-domain performance but suffer from cross-dataset degradation, primarily due to overfitting to dataset-specific spatial artifacts. To address these challenges, we propose a parameter-efficient, video-based deepfake detection framework that leverages a frozen foundation model encoder coupled with a lightweight spatio-temporal decoder. First, we introduce a Component-Aware Spatial Enhancement (CASE) module that selectively accentuates manipulation-prone facial regions, such as the eyes, mouth and nose, while capturing global-local structural inconsistencies, thereby enabling the detection of subtle artifacts. Second, it is complemented by a bidirectional spatio-temporal (Bi-ST) decoder that models local temporal transitions and bidirectional temporal dependencies across sampled frames, enabling robust temporal reasoning within each video clip. Without fine-tuning the backbone network, our framework achieves robust cross-dataset generalization by jointly reasoning about spatial and temporal anomalies. Finally, extensive experiments demonstrate that the proposed method achieves strong and competitive performance against recent baselines, particularly under cross-dataset evaluation.
+
+\keywords{Deepfake Detection  \and Video forensics \and Spatio-temporal modeling.}
+\end{abstract}
+%
+%
+%
+\section{Introduction}
+\label{sec:intro}
+\begin{figure}[!t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/fig1.pdf}
+  \caption{Motivation and overview of the proposed framework for video-based deepfake detection. Existing methods often overlook component-level artifacts and temporal inconsistencies, while our approach explicitly models both aspects through component-aware spatial enhancement and temporal decoding.} 
+  \label{fig:motivation}
+\end{figure}
+
+The rapid advancement of deep generative models has significantly lowered the technical barrier to creating highly realistic synthetic facial videos, commonly known as deepfakes. While such technology has legitimate applications in creative and entertainment fields, it is increasingly misused for spreading misinformation, identity fraud, and other malicious activities, posing serious threats to social trust, digital security, and media credibility.
+
+Early deepfake detection approaches primarily focused on spatial-domain artifacts using convolutional neural networks, with later methods incorporating temporal models such as recurrent networks or Transformers to capture motion inconsistencies. Although these methods achieve strong performance on in-domain benchmarks, they often exhibit significant performance degradation when evaluated on unseen datasets, highlighting the persistent challenge of cross-domain generalization. As modern deepfake generation techniques effectively suppress low-level artifacts and produce temporally coherent videos, relying on single-modality or dataset-specific cues becomes increasingly insufficient for robust detection.
+
+Recent studies indicate that effective deepfake detection requires jointly modeling manipulation-prone facial regions and temporal inconsistencies while leveraging robust semantic representations. However, existing approaches still face notable limitations. Methods focusing on spatial artifacts tend to overfit dataset-specific patterns, while temporal modeling architectures often struggle to capture subtle manipulations and temporal inconsistencies across frames. Moreover, spatial and temporal cues are commonly processed independently, limiting the model’s capacity to capture complex, interdependent forgery patterns. Although multi-modal fusion strategies have been explored to mitigate these issues~\cite{wang2025erf}, they often introduce additional modality dependencies or computational overhead, and may still underutilize complementary cues. These observations suggest that an effective detection framework should prioritize manipulation-sensitive regions, jointly reason over spatial and temporal inconsistencies, and maintain strong generalization without excessive model complexity.
+
+Motivated by these challenges, we propose a parameter-efficient, video-based deepfake detection framework built upon a frozen foundation model encoder and a lightweight spatio-temporal decoder. First, we design a Component-Aware Spatial Enhancement module to emphasize semantically meaningful facial regions and capture manipulation-induced global--local discrepancies, enabling the model to focus on the most informative features for forgery detection. This is complemented by a bidirectional spatio-temporal decoder that models temporal inconsistencies across sampled frames through local temporal convolution and bidirectional temporal aggregation, facilitating robust temporal reasoning within each clip. By integrating these components into a unified framework, our approach adapts high-level representations without fine-tuning the backbone, achieving strong cross-dataset generalization. The limitations of existing methods and the advantages of the proposed approach are illustrated in Fig.~\ref{fig:motivation}.
+
+% in body
+The main contributions are as follows:
+\begin{enumerate}[
+  label=(\arabic*),
+]
+  \item We introduce a Component-Aware Spatial Enhancement module that explicitly focuses on manipulation-prone facial components and captures global--local inconsistencies. By emphasizing semantically meaningful regions, this module improves the detection of subtle artifacts and enhances the interpretability of the model’s predictions.
+  \item We design an efficient bidirectional spatio-temporal decoder that aggregates temporal evidence from both forward and backward directions over sampled frames, improving temporal modeling within each clip. This component enhances the modeling of temporal inconsistency patterns and contributes to better performance in challenging cross-dataset scenarios.
+  \item Extensive experiments on multiple benchmark datasets demonstrate that the proposed framework achieves competitive performance under both in-domain and cross-dataset evaluation settings, with particularly strong results on several unseen benchmarks.
+\end{enumerate}
+
+\section{Related Work}
+\label{sec:related}
+\subsection{Deepfake Detection from Spatial Artifacts}
+
+Early deepfake detection methods mainly exploit spatial-domain artifacts with CNN-based detectors. MesoNet~\cite{afchar2018mesonet} learns mesoscopic image properties for facial forgery detection, while FaceForensics++~\cite{rossler2019faceforensics++} establishes a large-scale benchmark for facial manipulation detection and reports Xception-based detectors as particularly strong baselines. FFD~\cite{dang2020detection} further introduces an attention-based framework for face manipulation detection and localization, showing that local high-frequency fingerprints and manipulated regions are informative for detection. Face X-ray~\cite{li2020face} explicitly models blending boundaries through boundary-aware supervision, while SBI~\cite{shiohara2022detecting} improves robustness by training on self-blended images to simulate realistic forgery artifacts.
+
+Beyond purely spatial cues, several works explore frequency-domain representations to capture subtle manipulation traces. F3Net~\cite{qian2020thinking} mines frequency-aware clues through frequency-aware decomposition and local frequency statistics, enabling the detection of forgery artifacts that are less visible in the spatial domain. SPSL~\cite{liu2021spatial} revisits face forgery detection from a spatial-phase perspective by combining spatial images with phase spectra to capture up-sampling artifacts and improve transferability. Luo et al.~\cite{luo2021generalizing} further exploit high-frequency noises to improve generalization across manipulation methods. More recently, wavelet-based architectures, such as the wavelet-integrated VGG19 model~\cite{sadhya2024deepfake}, combine spatial and wavelet-domain features to enhance sensitivity to subtle manipulation traces.
+
+%这里有两个需要马上纠正的小点：一是这个工作通常写作 SPSL，不是 SPSI；二是 [16] 这篇并不是一个叫 “SRM” 的方法名，更稳妥的是直接写成 “Luo et al.~\cite{luo2021generalizing}” 或概括为 high-frequency feature based method
+
+More recently, diffusion-based image generation has posed new challenges to forgery detection. DIRE~\cite{wang2023dire} detects diffusion-generated images by measuring the reconstruction error between an input image and its diffusion-based reconstruction, thereby exploiting intrinsic properties of the diffusion process rather than model-specific artifacts. Nevertheless, these spatial- and frequency-based approaches typically operate at the frame level and may still overfit dataset-specific artifacts, limiting robustness under real-world domain shifts, especially for unseen generative pipelines.
+%第一，“also known as AltFreezing” 不正确。DIRE 是 DIffusion Reconstruction Error，而 AltFreezing 是同一作者团队另一篇关于 video face forgery detection 的工作，不是 DIRE 的别名。第二，DIRE 的核心并不是“freezing intermediate denoising steps and extracting residual inconsistencies between generation stages”，而是用一个预训练扩散模型重建输入图像，并计算输入图像与其重建结果之间的误差；论文观察到，扩散生成图像通常比真实图像更容易被扩散模型近似重建，因此这种 reconstruction error 可以作为检测线索。论文也强调了它对未见扩散模型和多种扰动的泛化与鲁棒性。
+
+\subsection{Video-based Temporal Modeling for Deepfake Detection}
+
+To capture inconsistencies beyond single frames, video-based methods explicitly model temporal information across frames. LipForensics~\cite{haliassos2021lips} exploits temporal irregularities in the mouth region, while FTCN~\cite{zheng2021exploring} explores temporal coherence for more general video forgery detection. RealForensics~\cite{haliassos2022leveraging} leverages self-supervised learning on real talking-face videos to learn natural facial representations without relying on forgery-specific supervision.
+
+Recent approaches adopt more powerful temporal architectures. Methods such as TALL-Swin~\cite{xu2023tall} preserve spatial and temporal dependencies through a thumbnail layout and demonstrate strong cross-dataset performance. Despite these advances, performance degradation under severe domain shifts and unseen manipulation techniques remains a major challenge for video-based detectors.
+
+\subsection{Improving Cross-dataset Generalization}
+
+Improving cross-dataset generalization has become a central focus in deepfake detection research. CORE~\cite{ni2022core} proposes consistent representation learning to improve generalization across different manipulation methods. Recce~\cite{cao2022end} adopts an end-to-end reconstruction-classification framework, where reconstruction learning encourages the model to capture common compact representations of real faces rather than superficial artifacts.
+
+
+More recent works explore richer representation learning strategies for deepfake detection. Hong et al.~\cite{hong2024contrastive} introduce contrastive learning with multi-label ranking for deepfake classification and localization, while Yan et al.~\cite{yan2024transcending} propose latent space augmentation to mitigate forgery-specific bias. Despite these advances, achieving stable and robust generalization across diverse real-world datasets remains an open problem, motivating further exploration of representation learning beyond dataset-specific cues.
+
+
+\section{Method}
+\label{sec:method}
+We propose a parameter-efficient framework for video-based deepfake detection, which leverages a frozen CLIP image encoder for frame-level spatial representation learning and a lightweight spatio-temporal decoder for temporal reasoning. The framework comprises three key components:
+\begin{enumerate}[
+    label=(\arabic*),
+  ]
+    \item a CLIP-based multi-layer feature extractor that leverages foundation-level visual representations without backbone fine-tuning. 
+    \item a Component-Aware Spatial Enhancement (CASE) module that focuses on manipulation-prone facial components and global–local spatial inconsistencies.
+    \item an efficient bidirectional spatio-temporal (Bi-ST) decoder that models temporal inconsistencies across sampled frames through local temporal convolution and bidirectional temporal aggregation.
+  \end{enumerate}
+An overview of the architecture is shown in Fig.~\ref{fig:model}, and details are provided in the following subsections.
+% 3个有序列表是否分段
+
+\subsection{Problem Formulation}
+
+Given an input video $\mathcal{V} = \{I_1, I_2, \ldots, I_T\}$ consisting of $T$ aligned facial frames, where each frame $I_t \in \mathbb{R}^{224 \times 224 \times 3}$, the goal is to learn a binary classifier
+$f: \mathcal{V} \rightarrow \{0,1\}$ that predicts whether the video is real ($0$) or fake ($1$). Our approach explicitly models both spatial facial semantics and temporal dependencies across frames.
+
+\subsection{CLIP-based Feature Extraction}
+
+We employ a frozen CLIP ViT-L/14 image encoder as the visual backbone, leveraging its strong generalization ability from large-scale vision-language pretraining. For a batch of videos, all frames are reshaped into $(B \cdot T, 3, 224, 224)$ and independently processed by the encoder.
+
+We extract token embeddings from the last $K=4$ transformer layers. For each layer $\ell$, the output is
+\begin{equation}
+\mathbf{X}^{\ell} \in \mathbb{R}^{(B \cdot T) \times N \times D},
+\end{equation}
+
+\begin{figure*}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{figures/fig2.pdf}
+  \caption{Overview of the proposed video-based deepfake detection framework.
+  A frozen CLIP image encoder is coupled with a lightweight spatio-temporal decoder.
+  The spatial branch uses CASE, which consists of FCG and CCSA.
+  The temporal branch captures local temporal transitions and broader within-clip dependencies through bidirectional temporal aggregation.}
+  \label{fig:model}
+\end{figure*}
+
+where $N=257$ tokens (one CLS token and 256 patch tokens) and $D=1024$. The features are reshaped into $(B, T, N, D)$ and forwarded to the decoder. The CLIP encoder remains frozen throughout training to preserve pretrained semantic priors and enable parameter-efficient adaptation.
+
+
+
+
+\subsection{Component-Aware Spatial Enhancement}
+
+Deepfake artifacts are often localized in specific facial regions, while inconsistencies between global facial structure and local details also provide strong cues. To exploit these properties, we introduce the Component-Aware Spatial Enhancement (CASE) module, which integrates Facial Component Guidance (FCG) and Cross-Component Self-Attention (CCSA).
+
+Given the input features $\mathbf{X} \in \mathbb{R}^{B \times T \times N \times D}$, CASE enhances spatial representations through a two-stage process. 
+For clarity, we omit the batch and temporal indices and consider the spatial tokens of a single frame, denoted by $\{\mathbf{x}_j\}_{j=1}^{N-1}$, where $\mathbf{x}_j \in \mathbb{R}^D$. 
+First, component-guided feature weighting is performed using semantic masks $\mathcal{M} = \{M_c : c \in \mathcal{C}\}$ extracted from a pre-trained face parser, where $\mathcal{C} = \{\text{eye}, \text{nose}, \text{mouth}\}$ denotes the set of facial components. 
+For each component $c \in \mathcal{C}$, we compute a scalar importance score and normalize it across spatial tokens:
+\begin{equation}
+\alpha_{c,j}=
+\frac{\exp(\mathbf{w}_c^\top \mathbf{x}_j + b_c)}
+{\sum_{k=1}^{N-1}\exp(\mathbf{w}_c^\top \mathbf{x}_k + b_c)},
+\end{equation}
+where $\mathbf{w}_c \in \mathbb{R}^{D}$ and $b_c \in \mathbb{R}$ are learnable parameters. 
+The component-guided aggregated feature is then defined as
+\begin{equation}
+\mathbf{x}_{\text{FCG}}=
+\sum_{c \in \mathcal{C}} \lambda_c
+\sum_{j=1}^{N-1}\alpha_{c,j}\, M_c(j)\,\mathbf{x}_j,
+\end{equation}
+where $M_c(j)\in\{0,1\}$ indicates whether token $j$ belongs to component $c$, and $\lambda_c \in \mathbb{R}^+$ is a learnable component importance weight.
+
+Second, cross-component interaction is modeled through bidirectional information exchange between global and local representations. Let $\mathbf{g} \in \mathbb{R}^D$ denote the global representation and $\{\mathbf{l}_j \in \mathbb{R}^D : j = 1, \ldots, N-1\}$ denote the local patch representations. The interaction is formulated as:
+\begin{equation}
+\begin{split}
+\mathbf{g}' = \mathbf{g} + \sum_{j=1}^{N-1} \frac{\kappa(\mathbf{g}, \mathbf{l}_j)}{\sum_k \kappa(\mathbf{g}, \mathbf{l}_k)} \mathbf{l}_j ,~ 
+\mathbf{l}'_j = \mathbf{l}_j + \frac{\kappa(\mathbf{l}_j, \mathbf{g})}{\sum_k \kappa(\mathbf{l}_k, \mathbf{g})} \mathbf{g}
+\end{split}
+\end{equation}
+Here, $\kappa(\cdot,\cdot)$ is defined as
+\begin{equation}
+\kappa(\mathbf{x},\mathbf{y})=\exp\!\left(\frac{\mathbf{x}^{\top}\mathbf{y}}{\sqrt{d}}\right)
+\end{equation}
+where $d$ denotes the feature dimension used in the similarity computation. This kernel form is applied consistently in our implementation, with softmax used for normalization over the relevant comparison set whenever $\kappa(\cdot,\cdot)$ appears in the paper. The enhanced features $\mathbf{X}_{\text{CCSA}}$ are obtained by concatenating the updated global and local representations.
+
+The final CASE output combines both mechanisms:
+\begin{equation}
+\mathbf{X}_{\text{CASE}} = \mathbf{X}_{\text{CCSA}} + \beta \mathbf{X}_{\text{FCG}} ,
+\end{equation}
+where $\beta \in \mathbb{R}$ is a learnable parameter that balances the contributions of component guidance and cross-component interaction.
+
+\subsection{Bidirectional spatio-temporal Modeling Decoder}
+To capture temporal inconsistencies across sampled frames, we design an efficient bidirectional spatio-temporal decoder, referred to as the Bi-ST decoder, composed of $K=4$ stacked layers.
+
+First, a depthwise temporal convolution is applied to model local temporal transitions, followed by learnable temporal position embeddings to preserve frame ordering. The Bi-ST decoder then aggregates temporal evidence in both forward and backward directions, enabling the modeling of non-local temporal dependencies within each sampled clip.
+
+For each decoder layer $i$, given the input features $\mathbf{X}_i \in \mathbb{R}^{B \times T \times N \times D}$ from the $i$-th encoder layer, the bidirectional temporal cross attention mechanism computes inter-frame relationships as:
+\begin{equation}
+\begin{split}
+\mathbf{F}_i = \mathbf{X}_i + \mathbf{P}_i + \sum_{\tau=1}^{T-1} \sum_{j,\ell=1}^{N-1} \Big[ \phi^{(j,\ell)}_{\tau \rightarrow \tau+1} \mathbf{W}_1[\Delta(j,\ell)] 
++ \phi^{(j,\ell)}_{\tau+1 \rightarrow \tau} \mathbf{W}_2[\Delta(j,\ell)] \Big]
+\end{split}
+\end{equation}
+where $\mathbf{P}_i \in \mathbb{R}^{T \times D}$ denotes the temporal position embeddings. The temporal correlation coefficients $\phi_{\tau \rightarrow \tau'}^{(j,\ell)}$ quantify the similarity between spatial locations $j$ and $\ell$ across temporal instants $\tau$ and $\tau'$:
+\begin{equation}
+\phi_{\tau \rightarrow \tau'}^{(j,\ell)} = \frac{\kappa(\mathbf{f}(\tau, j), \mathbf{f}(\tau', \ell))}{\sum_{\ell'=1}^{N-1} \kappa(\mathbf{f}(\tau, j), \mathbf{f}(\tau', \ell'))} .
+\end{equation}
+where $\kappa(\cdot,\cdot)$ is the same kernel defined in Eq.~(4), and $\mathbf{f}(\tau, j), \mathbf{f}(\tau', \ell) \in \mathbb{R}^d$ are the feature representations obtained from the encoder. The learnable weight matrices $\mathbf{W}_1, \mathbf{W}_2 \in \mathbb{R}^{(2H_s-1)(2W_s-1) \times D}$ encode relative spatial-temporal relationships, indexed by the relative spatial offset $\Delta(j,\ell)$.
+%公式的格式问题？
+
+
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Experimental Setup}
+
+We evaluate the proposed method under a cross-dataset deepfake detection setting, which is widely adopted to assess model generalization.
+All models are trained on FaceForensics++ and evaluated on multiple unseen datasets without accessing any target-domain data during training.
+
+Detection performance is measured using AUC, where higher values indicate better discrimination between real and manipulated videos under distribution shifts.
+
+\textbf{Architecture.}
+Unless otherwise specified, we adopt CLIP ViT-L/14 as the frozen backbone encoder.
+An EVL-style lightweight spatio-temporal decoder with four layers is employed to model temporal dependencies.
+The decoder processes $T=10$ uniformly sampled frames at a resolution of $224 \times 224$, followed by a lightweight classification head.
+
+\textbf{Data Processing.}
+We adopt a video pre-processing pipeline similar to RealForensics.
+Facial landmarks are extracted using 2D-FAN, followed by face alignment to the LRW mean face, cropping, and resizing to $224 \times 224$.
+During training, non-overlapping clips of 2--4 seconds are randomly sampled from each video, from which $T=10$ frames are uniformly extracted.
+The sampled frames undergo video-level data augmentation, including geometric, photometric, and compression-based transformations.
+For validation, a single clip per video is used from the validation split of FF++ without data augmentation.
+
+\textbf{Training.}
+The model is trained on FF++ (c23) for 30 epochs using AdamW with a learning rate of $1 \times 10^{-4}$ and weight decay of $1 \times 10^{-3}$.
+Only the spatio-temporal decoder and classification head are optimized, while the CLIP backbone remains frozen.  
+We employ focal loss with a focusing parameter $\gamma=4$ and apply early stopping based on the AUC on the FF++ validation split.
+
+Training is conducted on multiple NVIDIA GPUs with mixed-precision enabled, and the overall training process is completed within approximately 16 GPU hours.
+
+\subsection{Generalization to Unseen Dataset}
+To assess the cross-dataset generalization ability of our method, we conduct experiments on multiple unseen deepfake benchmarks.
+
+\textbf{Evaluation Benchmarks.}
+Following the cross-dataset protocol in RealForensics~\cite{haliassos2022leveraging}, we evaluate our method on multiple representative deepfake benchmarks.
+Forensics++ (FF++)~\cite{rossler2019faceforensics++} is used for training, while CelebDF-v2 (CDF) \cite{li2020celeb}, DFDC~\cite{dolhansky2020deepfake}, FaceShifter (FSh)~\cite{li2020advancing}, and WildDeepfake (WDF)~\cite{zi2020wilddeepfake} are used as unseen target datasets.
+For all cross-dataset results, we report performance only on the official test/evaluation split of each target dataset, without using any target-domain samples during training or model selection.
+These benchmarks cover both controlled and in-the-wild scenarios, providing a rigorous testbed for evaluating cross-domain generalization.
+
+%===================== Table I: Cross-dataset =====================
+{
+\scriptsize
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.05}
+
+\begin{table}[!htbp]
+\centering
+\caption{Cross-dataset AUC (\%) trained on FF++ and evaluated on unseen datasets. The best and second-best results are shown in bold and underlined, respectively.}
+\label{tab:cross_dataset}
+\begin{tabularx}{\linewidth}{lP{2.3cm}YYYY}
+\toprule
+Model & Pub./Mod. & CDF & DFDC & FSh & WDF \\
+\midrule
+Xception~\cite{rossler2019faceforensics++}        & ICCV'19~/~Img. & 73.7 & 70.9 & 72.0 & -- \\
+Face X-ray~\cite{li2020face}                      & CVPR'20~/~Img. & 79.5 & 65.5 & 92.8 & -- \\
+LipForensics~\cite{haliassos2021lips}             & CVPR'21~/~Vid. & 82.4 & 73.5 & 97.1 & -- \\
+FTCN~\cite{zheng2021exploring}                    & ICCV'21~/~Vid. & 86.9 & 74.0 & 98.8 & -- \\
+SBI(c23)~\cite{shiohara2022detecting}             & CVPR'22~/~Img. & 92.9 & 72.0 & --   & -- \\
+RealForensics~\cite{haliassos2022leveraging}      & CVPR'22~/~Vid. & 86.9 & 75.9 & \underline{99.3} & -- \\
+AltFreezing~\cite{wang2023altfreezing}            & CVPR'23~/~Vid. & 89.5 & --   & \underline{99.3} & -- \\
+TALL-Swin~\cite{xu2023tall}                       & ICCV'23~/~Vid. & 90.8 & 76.8 & \textbf{99.7} & -- \\
+Yan et al.~\cite{yan2024transcending}             & CVPR'24~/~Img. & 91.1 & 77.0 & --   & -- \\
+Choi et al.~\cite{choi2024exploiting}             & CVPR'24~/~Vid. & 89.0 & --   & 99.0 & -- \\
+Hong et al.~\cite{hong2024contrastive}            & CVPR'24~/~Img. & \underline{91.6} & 75.2 & --   & 73.4 \\
+% LAA-Net~\cite{nguyen2024laa}                      & CVPR'24~/~Img. & \textbf{95.4} & -- & -- & \underline{80.0} \\
+SFIAD~\cite{kou2025sfiad}                         & AIR'25~/~Img.  & 79.0 & ~75.9$^\dagger$ & -- & -- \\
+% UDD~\cite{fu2025exploring}                        & AAAI'25~/~Vid. & \underline{93.1} & \underline{81.2} & 87.5 & \textbf{85.2} \\
+RepDFD~\cite{lin2025standing}                     & AAAI'25~/~Vid. & 89.9 & \underline{81.0} & -- & \textbf{88.1} \\
+\midrule
+\rowcolor{gray!15}
+\textbf{Ours} & -- & \textbf{93.2} & \textbf{82.6} & 97.7 & \underline{84.5} \\
+\midrule
+\multicolumn{6}{@{}p{\dimexpr\linewidth-2\tabcolsep\relax}@{}}{\footnotesize
+$^\dagger$ The value shown in the DFDC column corresponds to DFDC-P rather than the full DFDC benchmark.
+} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+}
+
+
+
+\textbf{Cross-dataset Evaluation.}
+As shown in Table~\ref{tab:cross_dataset}, our method demonstrates strong and balanced generalization across unseen datasets.
+It achieves the best AUC on \textbf{CDF (93.2\%)} and \textbf{DFDC (82.6\%)}, surpassing the strongest reported baseline on DFDC by \textbf{1.6\%}.
+On \textbf{FSh} and \textbf{WDF}, our method obtains \textbf{97.7\%} and \textbf{84.5\%} AUC, respectively, showing competitive performance on FSh and the second-best result on WDF.
+Overall, while some prior methods excel on individual target datasets, our framework maintains consistently strong performance across benchmarks with diverse characteristics, covering both controlled and in-the-wild scenarios.
+These results indicate that the proposed spatial-temporal design enhances the robustness and transferability of learned forgery representations.
+
+
+
+\subsection{Per-manipulation Performance on FF++}
+
+We evaluate our method on FaceForensics++ by reporting intra-testing AUC scores for each manipulation type: DeepFakes (DF), Face2Face (F2F), FaceSwap (FS), and NeuralTextures (NT), as shown in Table~\ref{tab:manipulation_ff++}.
+
+Our approach achieves the best results among the compared methods across all categories, with AUC scores exceeding \textbf{99\%}.
+Notably, it attains \textbf{99.3\%} AUC on NeuralTextures, the most challenging manipulation due to minimal spatial artifacts and subtle temporal inconsistencies.
+Compared to strong baselines such as FRENet, CAFMF, and CORE, our method consistently outperforms them, demonstrating its ability to capture manipulation cues beyond dataset-specific artifacts.
+
+The uniformly high performance indicates that the model learns transferable, manipulation-agnostic representations.
+This robustness stems from the combination of component-aware spatial enhancement and bidirectional temporal modeling.
+
+
+
+% ===================== Table II: Intra-testing =====================
+{
+\scriptsize
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.05}
+
+\begin{table}[!t]
+\centering
+\caption{Intra-testing results trained on FF++, measured by AUC. The best and second-best results are shown in bold and underlined, respectively.}
+\label{tab:manipulation_ff++}
+\begin{tabularx}{\linewidth}{lP{1.9cm}YYYY}
+\toprule
+Model & Pub. & DF & F2F & FS & NT \\
+\midrule
+MesoIncep~\cite{afchar2018mesonet}         & WIFS'18    & 85.4 & 80.9 & 74.2 & 65.2 \\
+EfficientB4~\cite{tan2019efficientnet}     & PMLR'19    & 97.6 & 97.6 & 98.0 & 93.1 \\
+Capsule~\cite{nguyen2019capsule}           & IEEE'19    & 86.7 & 86.3 & 87.3 & 78.0 \\
+FWA~\cite{li2018exposing}                  & CVPRW'19   & 92.1 & 90.0 & 88.4 & 81.2 \\
+CNN-Aug~\cite{wang2020cnn}                 & CVPR'20    & 90.5 & 87.9 & 90.3 & 73.1 \\
+F3Net~\cite{qian2020thinking}              & ECCV'20    & 97.9 & 98.0 & 98.4 & 93.5 \\
+FFD~\cite{dang2020detection}               & CVPR'20    & 98.0 & 97.8 & 98.5 & 93.1 \\
+SPSL~\cite{liu2021spatial}                 & CVPR'21    & 97.8 & 97.5 & 98.3 & 93.0 \\
+SRM~\cite{luo2021generalizing}             & CVPR'21    & 97.3 & 97.0 & 97.4 & 93.0 \\
+CORE~\cite{ni2022core}                     & CVPR'22    & 97.9 & 98.0 & 98.2 & 93.4 \\
+Recce~\cite{cao2022end}                    & CVPR'22    & 98.0 & 97.8 & 97.9 & 93.6 \\
+ADA-FInfer~\cite{hu2024ada}                & TDSC'24    & 83.1 & 78.4 & 74.4 & 72.3 \\
+VGG19~\cite{sadhya2024deepfake}            & BigData'24 & 97.0 & 96.4 & 97.7 & 91.4 \\
+SDIF~\cite{lai2024selective}               & ICASSP'24  & 83.5 & 83.7 & 75.1 & -- \\
+DDL~\cite{sun2025ddl}                      & TIFS'25    & 83.1 & 77.5 & 78.1 & 79.3 \\
+CAFMF~\cite{meng2025application}           & ICCRD'25   & \underline{98.8} & 98.2 & 98.9 & \underline{94.4} \\
+FRENet~\cite{song2025deepfake}             & IVC'25     & 98.6 & \underline{98.3} & \underline{99.0} & 93.8 \\ 
+\midrule
+\rowcolor{gray!15}
+\textbf{Ours} & -- & \textbf{99.4} & \textbf{99.4} & \textbf{99.2} & \textbf{99.3} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+}
+
+
+
+% ===================== Table III: Ablation Study =====================
+{
+\scriptsize
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.05}
+
+\begin{table}[!t]
+\centering
+\caption{Ablation study of the proposed framework in terms of AUC(\%).
+CASE: Component-Aware Spatial Enhancement module,
+Bi-ST: Bidirectional spatio-temporal decoder.}
+\label{tab:abation_study}
+\begin{tabularx}{\linewidth}{lYYYYY}
+\toprule
+Comp. & CDF & DFDC & FSh & WDF & Avg. \\
+\midrule
+\rowcolor{gray!15}
+\textbf{Ours} & 93.2 & 82.6 & 97.7 & 84.5 & 89.5 \\
+w/o CASE      & 89.9 & 83.2 & 97.9 & 82.1 & 88.3(-1.2) \\
+w/o Bi-ST     & 94.3 & 81.0 & 97.6 & 80.3 & 88.3(-1.2) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+}
+
+\subsection{Ablation Study}
+
+We analyze the contributions of the Component-Aware Spatial Enhancement module and the temporal modeling component under cross-dataset evaluation (Table~\ref{tab:abation_study}) and visualize per-frame affinity maps (Fig.~\ref{fig:heat_map}).
+
+
+\textbf{Effect of CASE.}  
+Removing CASE causes an average AUC drop of \textbf{1.2\%}, with notable degradation on CDF and WDF. This shows CASE effectively guides the model to focus on manipulation-prone facial regions and suppress background bias. Qualitative results confirm that CASE produces compact, semantically meaningful attention on key facial components, unlike the diffuse responses of the baseline.
+
+\textbf{Effect of temporal modeling.}  
+Removing the bidirectional spatio-temporal component leads to an average AUC drop of \textbf{1.2\%}, especially on DFDC and WDF, highlighting the benefit of temporal modeling for capturing temporal inconsistencies across sampled frames. Spatial cues alone are insufficient for reliable detection in unconstrained scenarios.
+
+Overall, both CASE and temporal modeling provide complementary benefits:
+CASE improves spatial discrimination, while the temporal module enhances the modeling
+of subtle temporal inconsistencies within a clip, yielding consistently superior
+performance across datasets.
+
+
+
+\begin{figure}[t] 
+   \centering \includegraphics[width=\linewidth]{figures/fig3.pdf}
+   \caption{Illustration of the per-frame affinity maps for three Deepfake detectors: the baseline and our proposed framework with
+and without the CASE.} \label{fig:heat_map} 
+\end{figure}
+
+
+
+
+\section{Conclusion}
+
+This paper presents a parameter-efficient, video-based deepfake detection framework designed to address the critical challenges of cross-dataset generalization and robust spatio-temporal modeling. By utilizing a frozen foundation model encoder, our approach retains powerful, general-purpose semantic representations without incurring the computational cost or overfitting risks of full fine-tuning. The proposed CASE module directs the model's attention to semantically meaningful and manipulation-prone facial regions, effectively capturing subtle global-local structural discrepancies. Complementing this, the Bi-ST decoder models local temporal transitions and broader within-clip temporal inconsistencies across sampled frames, enabling more reliable temporal reasoning within each sampled clip. Extensive evaluation on multiple cross-dataset benchmarks demonstrates that our framework achieves competitive performance and strong robustness under distribution shifts. For future work, we plan to explore more adaptive mechanisms for facial component discovery, investigate richer multi-modal fusion strategies, develop efficient temporal modeling for longer sequences, and adapt the framework for real-world deployment scenarios involving streaming data and continuously evolving manipulation techniques.
+
+% ---- Bibliography ----
+%BibTeX users should specify bibliography style 'splncs04'.
+%References will then be sorted and formatted in the correct style.
+
+\bibliographystyle{splncs04}
+\bibliography{mybibliography}
+
+
+\end{document}
+
+
+

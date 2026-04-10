@@ -1,0 +1,57 @@
+\section{Method}
+\label{sec:method}
+
+We propose a video-based deepfake detection framework that combines a frozen CLIP encoder with a novel decoder architecture. Our method consists of three key components: (1) CLIP-based multi-scale feature extraction, (2) Component-Aware Spatial Enhancement (CASE) that integrates FCG and CCSA, and (3) a temporal modeling decoder with three complementary mechanisms. The overall architecture is illustrated in Figure~\ref{fig:architecture}.
+
+\subsection{Problem Formulation}
+
+Given an input video $\mathcal{V} = \{I_1, I_2, \ldots, I_T\}$ with $T$ frames, where each frame $I_t \in \mathbb{R}^{224 \times 224 \times 3}$ is face-cropped and aligned, we learn a binary classifier $f: \mathcal{V} \rightarrow \{0, 1\}$ to predict real ($y=0$) or fake ($y=1$). Unlike image-based methods, our approach explicitly models spatial component relationships and temporal dependencies to capture deepfake artifacts.
+
+\subsection{CLIP-based Feature Extraction}
+
+We adopt a frozen pre-trained ViT-L/14 from CLIP~\cite{radford2021learning} as our feature extractor. For a video with $T$ frames, we reshape the input to $(B \cdot T, 3, 224, 224)$ and extract multi-scale features from the last $K=4$ layers of the 24-layer encoder. For each layer $\ell$, we obtain query $\mathbf{Q}^\ell$, key $\mathbf{K}^\ell$, and output features $\mathbf{X}^\ell \in \mathbb{R}^{(B \cdot T) \times N \times D}$, where $N=257$ tokens (1 CLS + 256 patches) and $D=1024$ dimensions. These features are reshaped to $(B, T, N, D)$ for subsequent processing. Freezing the encoder preserves rich semantic representations from vision-language pre-training, ensuring strong generalization while maintaining parameter efficiency.
+
+\subsection{Component-Aware Spatial Enhancement (CASE)}
+
+CASE combines Facial Component Guidance (FCG) with Cross-Component Self-Attention (CCSA) to enhance spatial feature learning, motivated by two observations: (1) deepfake artifacts localize in specific facial components, and (2) forgeries introduce global-local inconsistencies.
+
+\textbf{Facial Component Guidance (FCG).} We extract facial component masks $\mathcal{M} = \{M_{\text{eye}}, M_{\text{nose}}, M_{\text{mouth}}, M_{\text{skin}}\}$ using a pre-trained face parser~\cite{yu2018bisenet}. For each component $c$, we compute attention weights and aggregate features:
+\begin{equation}
+\mathbf{A}_c = \text{Softmax}(\mathbf{W}_c \mathbf{X}_{\text{patch}} + \mathbf{b}_c) \odot M_c, \quad
+\mathbf{X}_{\text{FCG}} = \sum_{c \in \mathcal{M}} \alpha_c (\mathbf{A}_c \mathbf{X}_{\text{patch}})
+\end{equation}
+where $\alpha_c$ are learnable importance weights.
+
+\textbf{Cross-Component Self-Attention (CCSA).} Given features $\mathbf{X} \in \mathbb{R}^{B \times T \times N \times D}$, we separate CLS tokens $\mathbf{X}_{\text{cls}}$ (global structure) and patch tokens $\mathbf{X}_{\text{patch}}$ (local details), then perform bidirectional cross-attention:
+\begin{equation}
+\begin{aligned}
+\mathbf{C}_{\text{cls}} &= \text{MHA}(\text{LN}(\mathbf{X}_{\text{cls}}), \text{LN}(\mathbf{X}_{\text{patch}}), \text{LN}(\mathbf{X}_{\text{patch}})) \\
+\mathbf{C}_{\text{patch}} &= \text{MHA}(\text{LN}(\mathbf{X}_{\text{patch}}), \text{LN}(\mathbf{X}_{\text{cls}}), \text{LN}(\mathbf{X}_{\text{cls}}))
+\end{aligned}
+\end{equation}
+where MHA denotes multi-head attention with $H=16$ heads. Updated features are obtained via residual connections: $\mathbf{X}'_{\text{cls}} = \mathbf{X}_{\text{cls}} + \text{Dropout}(\mathbf{C}_{\text{cls}})$ and $\mathbf{X}'_{\text{patch}} = \mathbf{X}_{\text{patch}} + \text{Dropout}(\mathbf{C}_{\text{patch}})$, then concatenated as $\mathbf{X}_{\text{CCSA}} = \text{Concat}([\mathbf{X}'_{\text{cls}}, \mathbf{X}'_{\text{patch}}])$.
+
+\textbf{Integration.} CASE integrates FCG and CCSA complementarily: $\mathbf{X}_{\text{CASE}} = \mathbf{X}_{\text{CCSA}} + \beta \mathbf{X}_{\text{FCG}}$, where $\beta$ is learnable. This enables simultaneous focus on discriminative components and global-local consistency.
+
+\subsection{Temporal Modeling Decoder}
+
+The decoder processes features through $K=4$ layers, each incorporating three temporal components:
+
+\textbf{(1) Temporal Convolution} captures local patterns via depthwise 1D convolution: $\mathbf{F}_i^{(1)} = \mathbf{X}_i + \text{Conv1D}(\mathbf{X}_i; \text{kernel}=3, \text{groups}=D)$.
+
+\textbf{(2) Temporal Position Embedding} provides ordering information: $\mathbf{F}_i^{(2)} = \mathbf{F}_i^{(1)} + \mathbf{P}_i$, where $\mathbf{P}_i \in \mathbb{R}^{T \times D}$ are learnable.
+
+\textbf{(3) Temporal Cross Attention (TCA)} captures long-range dependencies via bidirectional attention between adjacent frames:
+\begin{equation}
+\text{TCA}(\mathbf{Q}_i, \mathbf{K}_i) = \sum_{t=1}^{T-1} [\mathbf{A}_{t \rightarrow t+1} \mathbf{W}_1 + \mathbf{A}_{t+1 \rightarrow t} \mathbf{W}_2]
+\end{equation}
+where $\mathbf{A}_{t \rightarrow t'} = \text{Softmax}(\mathbf{Q}_t^{\text{patch}} (\mathbf{K}_{t'}^{\text{patch}})^T / \sqrt{d_k})$ and $\mathbf{W}_1, \mathbf{W}_2 \in \mathbb{R}^{(2H_s-1)(2W_s-1) \times D}$ encode spatial-temporal relationships. Forward attention detects unnatural progressions while backward attention identifies causality violations. The output is $\mathbf{F}_i^{(3)} = \mathbf{F}_i^{(2)} + \text{TCA}(\mathbf{Q}_i, \mathbf{K}_i)$.
+
+After temporal modeling, CASE is applied: $\mathbf{F}_i^{(4)} = \text{CASE}(\mathbf{F}_i^{(3)})$, then features are flattened: $\mathbf{F}_i^{(5)} = \text{Flatten}(\mathbf{F}_i^{(4)}) \in \mathbb{R}^{B \times (T \cdot N) \times D}$. A learnable query token $\mathbf{q} \in \mathbb{R}^{1 \times D}$ aggregates information across layers via cross-attention: $\mathbf{q}_i = \mathbf{q}_{i-1} + \text{MHA}(\text{LN}(\mathbf{q}_{i-1}), \text{LN}(\mathbf{F}_i^{(5)}), \text{LN}(\mathbf{F}_i^{(5)}))$. The final $\mathbf{q}_K$ serves as the video-level feature.
+
+\subsection{Training}
+
+The classification head outputs probabilities: $\mathbf{p} = \text{Softmax}(\mathbf{W}_{\text{cls}} \text{LN}(\mathbf{q}_K) + \mathbf{b}_{\text{cls}})$. We use focal loss~\cite{lin2017focal} to handle class imbalance: $\mathcal{L}_{\text{focal}} = -\alpha_y (1 - p_y)^\gamma \log(p_y)$ with $\gamma=4$. The total loss is: $\mathcal{L}_{\text{total}} = \lambda_{\text{cls}} \mathcal{L}_{\text{focal}} + \lambda_{\text{fcg}} \mathcal{L}_{\text{FCG}}$ with $\lambda_{\text{cls}}=10.0$.
+
+We train using AdamW (lr=$1 \times 10^{-4}$, weight decay=0.05) for 10 epochs with batch size 8 per GPU on 4 V100s. Videos are sampled to $T=10$ frames at $224 \times 224$ resolution. Only decoder parameters (~50M) are trainable while CLIP remains frozen, ensuring parameter efficiency and strong generalization.
+

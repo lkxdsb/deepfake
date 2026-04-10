@@ -1,0 +1,73 @@
+data:
+  class_path: src.dataset.base.ODDeepFakeDataModule
+  init_args:
+    test_datamodules:
+      # - class_path: src.dataset.fsh.FShDataModule
+      #   init_args:
+      #     data_dir: '/root/autodl-tmp/dataset/cropped'
+      #     compressions: ['c23']
+      #     vid_ext: .avi
+      # - class_path: src.dataset.wdf.WDFDataModule
+      #   init_args:
+      #     data_dir: '/home/top/disks/old-disk/home/top/zty/data/WlidDeepfake'
+      #     vid_ext: .png
+
+      - class_path: src.dataset.ttdf.TTDFDataModule
+        init_args:
+          data_dir: '/home/top/disks/old-disk/home/top/zty/data/TT-DF'
+          vid_ext: .avi
+          fake_methods: ['animateAnyone', 'magicAnimate', 'magicDance']  # 若有缺就删掉对应名字
+# data:
+#   class_path: src.dataset.base.ODDeepFakeDataModule
+#   init_args:
+#     train_datamodules: []   # optional, keeps things clean
+#     val_datamodules: []     # important: prevents FFPP/FSh val loaders on test
+#     test_datamodules:
+#       # - class_path: src.dataset.cdf.CDFDataModule
+#       #   init_args:
+#       #     data_dir: /root/autodl-tmp/data/Celeb-DF-v2-video-test/cropped
+#       #     vid_ext: .avi   # or change to .mp4 if that’s your video suffix
+#       - class_path: src.dataset.dfdc.DFDCDataModule
+#         init_args:
+#           data_dir: /root/autodl-tmp/data/dfdc_new/cropped/
+#           vid_ext: .avi   # or change to .mp4 if that’s your video suffix
+# data:
+#   class_path: src.dataset.base.ODDeepFakeDataModule
+#   init_args:
+#     test_datamodules:
+    # - class_path: src.dataset.ffpp.FFPPDataModule
+    #   init_args:
+    #     df_types: ['REAL','DF','FS','F2F','NT']
+    #     compressions: ['c23']
+    #     strategy: NORMAL
+    #     augmentations: 
+    #     - NONE
+    #     force_random_speed: null
+    #     data_dir: 'datasets/ffpp/'
+    #     vid_ext: .avi
+    # - class_path: src.dataset.cdf.CDFDataModule
+    #   init_args:
+    #     data_dir: '/root/autodl-tmp/data/Celeb-DF-v2-video-test/cropped/'
+    #     vid_ext: '.avi'
+    # Uncomment below if you also want to evaluate these datasets and have their files ready
+    # - class_path: src.dataset.dfdc.DFDCDataModule
+    #   init_args:
+    #     data_dir: 'datasets/dfdc/'
+    #     vid_ext: '.avi'
+    # - class_path: src.dataset.fsh.FShDataModule
+    #   init_args:
+    #     data_dir: 'datasets/ffpp/'
+    #     compressions: ['c23']
+    #     vid_ext: '.avi'
+    # - class_path: src.dataset.dfo.DFoDataModule
+    #   init_args:
+    #     data_dir: 'datasets/dfo/'
+    #     vid_ext: '.avi'
+    # - class_path: src.dataset.wdf.WDFDataModule
+    #   init_args:
+    #     data_dir: 'datasets/wdf/'
+    #     vid_ext: .avi
+    # - class_path: src.dataset.heygen.HeyGenDataModule
+    #   init_args:
+    #     data_dir: 'datasets/heygen/'
+    #     vid_ext: .avi

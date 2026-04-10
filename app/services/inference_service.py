@@ -1,0 +1,239 @@
+﻿import logging
+import os
+import threading
+import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import cv2
+import numpy as np
+import torch
+
+from src.utility.builtin import ODLightningCLI, ODTrainer
+
+from app.core.config import Settings
+from app.utils.image_utils import load_image_rgb, rgb_to_chw_uint8
+from app.utils.video_utils import chw_rgb_to_bgr, read_video_frames, select_keyframe_indices, sliding_clip_indices
+from app.utils.vis_utils import extract_spatial_heatmap, overlay_heatmap_full, save_curve
+
+
+class InferenceService:
+    def __init__(self, settings: Settings):
+        self.settings = settings
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.precision = "16" if self.device.type == "cuda" else "32"
+        self._load_lock = threading.Lock()
+        self.model = None
+        self.transform = None
+        self.model_name = settings.model_ckpt_path.name
+        self.loaded = False
+
+    def _build_cli(self) -> ODLightningCLI:
+        args = [
+            "-c",
+            str(self.settings.model_cfg_path),
+            "--trainer.logger=null",
+            "--trainer.devices=1",
+            f"--trainer.precision={self.precision}",
+            "--model.init_args.attn_record=true",
+            '--model.init_args.store_attrs=["q","k"]',
+        ]
+        return ODLightningCLI(
+            run=False,
+            trainer_class=ODTrainer,
+            save_config_callback=None,
+            parser_kwargs={"parser_mode": "omegaconf"},
+            auto_configure_optimizers=False,
+            seed_everything_default=1019,
+            args=args,
+        )
+
+    def _load_model(self) -> None:
+        cli = self._build_cli()
+        model = cli.model
+        ckpt_path = str(self.settings.model_ckpt_path)
+        load_overrides = {
+            "attn_record": True,
+            "store_attrs": ["q", "k"],
+        }
+        try:
+            model = model.__class__.load_from_checkpoint(ckpt_path, **load_overrides)
+        except Exception as ex:
+            logging.warning("Checkpoint strict loading failed: %s", ex)
+            model = model.__class__.load_from_checkpoint(ckpt_path, strict=False, **load_overrides)
+
+        model.eval()
+        model.to(self.device)
+
+        self.model = model
+        self.transform = model.transform
+        self.loaded = True
+
+    def warmup(self) -> None:
+        self.ensure_model_loaded()
+
+    def ensure_model_loaded(self) -> None:
+        if self.loaded:
+            return
+        with self._load_lock:
+            if self.loaded:
+                return
+            self._load_model()
+
+    def health(self) -> Dict[str, Any]:
+        return {
+            "status": "ok",
+            "model_loaded": bool(self.loaded),
+            "device": str(self.device),
+            "model_name": self.model_name,
+        }
+
+    @torch.inference_mode()
+    def predict_image(self, image_path: Path) -> Dict[str, Any]:
+        self.ensure_model_loaded()
+
+        image_rgb = load_image_rgb(image_path)
+        frame = rgb_to_chw_uint8(image_rgb)
+        clip = torch.stack([self.transform(frame) for _ in range(self.settings.num_frames)])
+        batch = clip.unsqueeze(0).to(self.device)
+
+        t0 = time.perf_counter()
+        outputs = self.model.evaluate(batch)
+        elapsed = time.perf_counter() - t0
+
+        probs = outputs["logits"].softmax(dim=-1)[:, 1].detach().cpu().tolist()
+        score = float(probs[0])
+        label = "fake" if score >= self.settings.score_threshold else "real"
+        heatmap = extract_spatial_heatmap(outputs.get("layer_attrs"), batch_index=0)
+
+        return {
+            "label": label,
+            "score": score,
+            "inference_time": round(float(elapsed), 4),
+            "model_name": self.model_name,
+            "image_rgb": image_rgb,
+            "heatmap": heatmap,
+        }
+
+    @torch.inference_mode()
+    def predict_video(self, video_path: Path, task_id: str) -> Dict[str, Any]:
+        self.ensure_model_loaded()
+
+        frames, fps = read_video_frames(video_path)
+        total_frames = len(frames)
+
+        indices = sliding_clip_indices(
+            num_frames_total=total_frames,
+            fps=fps,
+            num_frames=self.settings.num_frames,
+            stride=self.settings.video_stride,
+        )
+
+        max_idx = int(indices[-1].item())
+        clip_count = max(1, total_frames - max_idx)
+
+        probs: List[float] = []
+        clip_heatmaps: List[Optional[np.ndarray]] = []
+        clip_offsets: List[int] = []
+
+        batch_size = max(1, int(os.getenv("VIDEO_BATCH_SIZE", "24")))
+        clip_step = max(1, int(os.getenv("VIDEO_CLIP_STEP", "4")))
+
+        t0 = time.perf_counter()
+        i = 0
+        while i < clip_count:
+            window_end = min(clip_count, i + batch_size * clip_step)
+            starts = list(range(i, window_end, clip_step))
+            cur_batch = len(starts)
+            if cur_batch == 0:
+                break
+
+            clips = []
+            for start in starts:
+                if clip_count == 1 and total_frames <= max_idx:
+                    clip_indices = indices
+                else:
+                    clip_indices = indices + start
+                clip = torch.stack([self.transform(frames[int(idx.item())]) for idx in clip_indices])
+                clips.append(clip)
+
+            batch = torch.stack(clips).to(self.device)
+            outputs = self.model.evaluate(batch)
+            batch_probs = outputs["logits"].softmax(dim=-1)[:, 1].detach().cpu().tolist()
+
+            layer_attrs = outputs.get("layer_attrs")
+            for j, prob in enumerate(batch_probs):
+                probs.append(float(prob))
+                clip_offsets.append(starts[j])
+                clip_heatmaps.append(extract_spatial_heatmap(layer_attrs, batch_index=j))
+
+            i = window_end
+
+        elapsed = time.perf_counter() - t0
+
+        score = float(np.mean(probs)) if probs else 0.0
+        label = "fake" if score >= self.settings.score_threshold else "real"
+
+        frame_results: List[Dict[str, Any]] = []
+        for idx, prob in enumerate(probs):
+            start_offset = clip_offsets[idx] if idx < len(clip_offsets) else idx * clip_step
+            frame_results.append(
+                {
+                    "clip_index": idx,
+                    "start_offset": int(start_offset),
+                    "score": round(float(prob), 6),
+                    "label": "fake" if prob >= self.settings.score_threshold else "real",
+                }
+            )
+
+        keyframe_clip_ids = select_keyframe_indices(probs, self.settings.keyframe_count)
+        keyframes_saved: List[Path] = []
+        for rank, clip_id in enumerate(keyframe_clip_ids, start=1):
+            start_offset = clip_offsets[clip_id] if clip_id < len(clip_offsets) else clip_id * clip_step
+            if clip_count == 1 and total_frames <= max_idx:
+                frame_idx = int(indices[-1].item())
+            else:
+                frame_idx = min(max_idx + start_offset, total_frames - 1)
+
+            frame_bgr = chw_rgb_to_bgr(frames[frame_idx])
+            prob = probs[clip_id]
+            text = f"offset={start_offset} p(fake)={prob:.3f}"
+            cv2.putText(frame_bgr, text, (15, 32), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+
+            out_path = self.settings.outputs_frames_dir / f"{task_id}_keyframe_{rank}.jpg"
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            cv2.imwrite(str(out_path), frame_bgr)
+            keyframes_saved.append(out_path)
+
+        curve_path = self.settings.outputs_reports_dir / f"{task_id}_curve.png"
+        save_curve(probs, curve_path)
+
+        preview_path = keyframes_saved[0] if keyframes_saved else None
+
+        best_clip_index = int(np.argmax(probs)) if probs else 0
+        best_attention_heatmap: Optional[np.ndarray] = None
+        if 0 <= best_clip_index < len(clip_heatmaps):
+            best_attention_heatmap = clip_heatmaps[best_clip_index]
+
+        return {
+            "label": label,
+            "score": round(score, 6),
+            "inference_time": round(float(elapsed), 4),
+            "model_name": self.model_name,
+            "frame_results": frame_results,
+            "keyframe_paths": keyframes_saved,
+            "curve_path": curve_path,
+            "preview_path": preview_path,
+            "fps": fps,
+            "total_frames": total_frames,
+            "attention_heatmap": best_attention_heatmap,
+            "best_clip_index": best_clip_index,
+            "clip_step": clip_step,
+            "batch_size": batch_size,
+        }
+
+    def render_image_heatmap(self, image_rgb: np.ndarray, heatmap: np.ndarray) -> np.ndarray:
+        image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
+        return overlay_heatmap_full(image_bgr, heatmap)
+
+

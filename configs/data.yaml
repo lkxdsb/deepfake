@@ -1,0 +1,44 @@
+class_path: src.dataset.base.ODDeepFakeDataModule
+init_args:
+  batch_size: 8
+  num_workers: 4
+  clip_duration: 3
+  num_frames: 10
+  train_datamodules:
+  - class_path: src.dataset.ffpp.FFPPDataModule
+    init_args:
+      batch_size: 8
+      df_types: ['REAL','DF','FS','F2F','NT']
+      compressions: ['c23']
+      strategy: FORCE_PAIR
+      augmentations:
+      - NORMAL
+      - VIDEO
+      - VIDEO_RRC
+      - FRAME
+      force_random_speed: null
+      data_dir: '/root/autodl-tmp/dataset/cropped'
+      vid_ext: '.avi'
+      pack: false
+      max_clips: 3
+  val_datamodules:
+  - class_path: src.dataset.ffpp.FFPPDataModule
+    init_args:
+      batch_size: 8
+      df_types: ['REAL','DF','FS','F2F','NT']
+      compressions: ['c23']
+      strategy: NORMAL
+      augmentations: 
+      - NONE
+      data_dir: '/root/autodl-tmp/dataset/cropped'
+      vid_ext: '.avi'
+      pack: false
+      max_clips: 1
+  - class_path: src.dataset.fsh.FShDataModule
+    init_args:
+      batch_size: 8
+      compressions: ['c23']
+      data_dir: '/root/autodl-tmp/dataset/cropped'
+      vid_ext: '.avi'
+      pack: false
+      max_clips: 1

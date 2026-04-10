@@ -1,0 +1,54 @@
+﻿{% extends "base.html" %}
+{% block title %}首页 - Deepfake Detection{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>深度伪造检测系统</h1>
+  <p>基于现有模型权重与推理代码的工程化 Web MVP。支持图片、视频与音频检测、结果展示、历史记录和示例演示。</p>
+  <p class="small-note">默认演示样例：{{ demo_video }}</p>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>图片检测</h3>
+    <p>上传 jpg/png/jpeg，返回真假、置信度与可解释热力图（可用时）。</p>
+    <a class="btn" href="/detect/image">进入图片检测</a>
+  </div>
+  <div class="card">
+    <h3>视频检测</h3>
+    <p>上传 mp4/avi/mov/mkv，返回视频级判定、关键帧和概率曲线。</p>
+    <a class="btn" href="/detect/video">进入视频检测</a>
+  </div>
+  <div class="card">
+    <h3>音频检测</h3>
+    <p>上传 wav/mp3/flac，返回 AASIST 真假判定、欺骗概率与阈值解释。</p>
+    <a class="btn" href="/detect/audio">进入音频检测</a>
+  </div>
+  <div class="card">
+    <h3>示例演示</h3>
+    <p>一键跑通内置样例，适合比赛答辩现场演示。</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button onclick="runDemo('video')">演示视频样例</button>
+      <button class="secondary" onclick="runDemo('image')">演示图片样例</button>
+    </div>
+    <p id="demo-status" class="small-note"></p>
+  </div>
+</div>
+
+<script>
+async function runDemo(mode) {
+  const status = document.getElementById('demo-status');
+  status.textContent = '运行中，请稍候...';
+  try {
+    const res = await fetch(`/api/demo/run?mode=${mode}`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok || data.code !== 0) {
+      throw new Error(data.message || 'demo failed');
+    }
+    window.location.href = `/results/${data.data.task_id}`;
+  } catch (err) {
+    status.textContent = `示例运行失败：${err.message}`;
+    status.className = 'error';
+  }
+}
+</script>
+{% endblock %}
