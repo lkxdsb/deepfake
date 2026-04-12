@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
@@ -39,6 +40,24 @@ except Exception:
 
 DEFAULT_MODEL_SOURCE = "nii-yamagishilab/xls-r-1b-anti-deepfake"
 AUDIO_FORMATS = (".mp3", ".wav", ".flac", ".m4a")
+DEFAULT_SSL_CONFIG: Dict[str, Any] = {
+    "quantize_targets": True,
+    "extractor_mode": "layer_norm",
+    "layer_norm_first": True,
+    "final_dim": 1024,
+    "latent_temp": (2.0, 0.1, 0.999995),
+    "encoder_layerdrop": 0.0,
+    "dropout_input": 0.0,
+    "dropout_features": 0.0,
+    "dropout": 0.0,
+    "attention_dropout": 0.0,
+    "conv_bias": True,
+    "encoder_layers": 48,
+    "encoder_embed_dim": 1280,
+    "encoder_ffn_embed_dim": 5120,
+    "encoder_attention_heads": 16,
+    "feature_grad_mult": 1.0,
+}
 
 
 class AudioDependencyError(RuntimeError):
@@ -79,77 +98,11 @@ def ensure_audio_dependencies() -> None:
 ModelHubMixinBase = PyTorchModelHubMixin if PyTorchModelHubMixin is not None else object
 
 
-class SSLModel(torch.nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
-        ensure_audio_dependencies()
-        cfg = Wav2Vec2Config(
-            quantize_targets=True,
-            extractor_mode="layer_norm",
-            layer_norm_first=True,
-            final_dim=1024,
-            latent_temp=(2.0, 0.1, 0.999995),
-            encoder_layerdrop=0.0,
-            dropout_input=0.0,
-            dropout_features=0.0,
-            dropout=0.0,
-            attention_dropout=0.0,
-            conv_bias=True,
-            encoder_layers=48,
-            encoder_embed_dim=1280,
-            encoder_ffn_embed_dim=5120,
-            encoder_attention_heads=16,
-            feature_grad_mult=1.0,
-        )
-        self.model = Wav2Vec2Model(cfg)
-
-    def extract_feat(self, input_data: torch.Tensor, device: torch.device) -> torch.Tensor:
-        if input_data.ndim == 3:
-            input_data = input_data[:, :, 0]
-        with torch.no_grad():
-            features = self.model(
-                input_data.to(device),
-                mask=False,
-                features_only=True,
-            )["x"]
-        return features
-
-
-class DeepfakeDetector(torch.nn.Module, ModelHubMixinBase):
-    def __init__(self) -> None:
-        super().__init__()
-        self.ssl_orig_output_dim = 1280
-        self.num_classes = 2
-        self.m_ssl = SSLModel()
-        self.adap_pool1d = torch.nn.AdaptiveAvgPool1d(output_size=1)
-        self.proj_fc = torch.nn.Linear(
-            in_features=self.ssl_orig_output_dim,
-            out_features=self.num_classes,
-        )
-
-    def forward(self, wav: torch.Tensor) -> torch.Tensor:
-        emb = self.m_ssl.extract_feat(wav, wav.device)
-        emb = emb.transpose(1, 2)
-        pooled_emb = self.adap_pool1d(emb).squeeze(-1)
-        return self.proj_fc(pooled_emb)
-
-
-def load_wav_and_preprocess(
-    wav_path: Union[str, Path],
-    target_sr: int = 16000,
-    device: Optional[torch.device] = None,
-) -> torch.Tensor:
-    ensure_audio_dependencies()
-    waveform, sample_rate = torchaudio.load(str(wav_path))
-    if waveform.ndim == 2:
-        waveform = waveform.mean(dim=0)
-    waveform = waveform.to(torch.float32)
-    if sample_rate != target_sr:
-        waveform = torchaudio.functional.resample(waveform, sample_rate, target_sr)
-    waveform = F.layer_norm(waveform, waveform.shape)
-    if device is not None:
-        waveform = waveform.to(device)
-    return waveform.unsqueeze(0)
+def _build_ssl_config(overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    config = dict(DEFAULT_SSL_CONFIG)
+    if overrides:
+        config.update(overrides)
+    return config
 
 
 def _resolve_model_name(model_source: Union[str, Path]) -> str:
@@ -186,6 +139,114 @@ def _load_state_dict_from_path(model_path: Path, device: torch.device) -> Dict[s
     return _normalize_state_dict(state)
 
 
+def _infer_ssl_config_from_state_dict(state_dict: Dict[str, Any]) -> Dict[str, Any]:
+    ssl_config = dict(DEFAULT_SSL_CONFIG)
+
+    mask_emb = state_dict.get("m_ssl.model.mask_emb")
+    if mask_emb is None or mask_emb.ndim != 1:
+        raise AudioDependencyError("unable to infer audio model architecture: missing m_ssl.model.mask_emb")
+    embed_dim = int(mask_emb.shape[0])
+
+    fc1_weight = state_dict.get("m_ssl.model.encoder.layers.0.fc1.weight")
+    if fc1_weight is None or fc1_weight.ndim != 2:
+        raise AudioDependencyError("unable to infer audio model architecture: missing encoder fc1 weights")
+    ffn_dim = int(fc1_weight.shape[0])
+
+    proj_fc_weight = state_dict.get("proj_fc.weight")
+    if proj_fc_weight is None or proj_fc_weight.ndim != 2:
+        raise AudioDependencyError("unable to infer audio model architecture: missing classifier weights")
+    classifier_in_dim = int(proj_fc_weight.shape[1])
+
+    pos_conv_weight_v = state_dict.get("m_ssl.model.encoder.pos_conv.0.weight_v")
+    if pos_conv_weight_v is None or pos_conv_weight_v.ndim != 3:
+        raise AudioDependencyError("unable to infer audio model architecture: missing positional conv weights")
+    pos_conv_inner = int(pos_conv_weight_v.shape[1])
+    attention_heads = max(1, embed_dim // pos_conv_inner)
+
+    encoder_layer_ids = {
+        int(match.group(1))
+        for key in state_dict.keys()
+        for match in [re.match(r"m_ssl\.model\.encoder\.layers\.(\d+)\.", key)]
+        if match
+    }
+    encoder_layers = max(encoder_layer_ids) + 1 if encoder_layer_ids else int(DEFAULT_SSL_CONFIG["encoder_layers"])
+
+    ssl_config.update(
+        {
+            "encoder_embed_dim": embed_dim,
+            "encoder_ffn_embed_dim": ffn_dim,
+            "encoder_attention_heads": attention_heads,
+            "encoder_layers": encoder_layers,
+        }
+    )
+
+    if classifier_in_dim != embed_dim:
+        raise AudioDependencyError(
+            f"classifier input dim ({classifier_in_dim}) does not match SSL embed dim ({embed_dim})"
+        )
+
+    return ssl_config
+
+
+class SSLModel(torch.nn.Module):
+    def __init__(self, ssl_config: Optional[Dict[str, Any]] = None) -> None:
+        super().__init__()
+        ensure_audio_dependencies()
+        self.ssl_config = _build_ssl_config(ssl_config)
+        self.output_dim = int(self.ssl_config["encoder_embed_dim"])
+        cfg = Wav2Vec2Config(**self.ssl_config)
+        self.model = Wav2Vec2Model(cfg)
+
+    def extract_feat(self, input_data: torch.Tensor, device: torch.device) -> torch.Tensor:
+        if input_data.ndim == 3:
+            input_data = input_data[:, :, 0]
+        with torch.no_grad():
+            features = self.model(
+                input_data.to(device),
+                mask=False,
+                features_only=True,
+            )["x"]
+        return features
+
+
+class DeepfakeDetector(torch.nn.Module, ModelHubMixinBase):
+    def __init__(self, ssl_config: Optional[Dict[str, Any]] = None) -> None:
+        super().__init__()
+        self.ssl_config = _build_ssl_config(ssl_config)
+        self.ssl_orig_output_dim = int(self.ssl_config["encoder_embed_dim"])
+        self.num_classes = 2
+        self.m_ssl = SSLModel(self.ssl_config)
+        self.adap_pool1d = torch.nn.AdaptiveAvgPool1d(output_size=1)
+        self.proj_fc = torch.nn.Linear(
+            in_features=self.ssl_orig_output_dim,
+            out_features=self.num_classes,
+        )
+
+    def forward(self, wav: torch.Tensor) -> torch.Tensor:
+        emb = self.m_ssl.extract_feat(wav, wav.device)
+        emb = emb.transpose(1, 2)
+        pooled_emb = self.adap_pool1d(emb).squeeze(-1)
+        return self.proj_fc(pooled_emb)
+
+
+def load_wav_and_preprocess(
+    wav_path: Union[str, Path],
+    target_sr: int = 16000,
+    device: Optional[torch.device] = None,
+) -> torch.Tensor:
+    ensure_audio_dependencies()
+    waveform, sample_rate = torchaudio.load(str(wav_path))
+    if waveform.ndim == 2:
+        waveform = waveform.mean(dim=0)
+    waveform = waveform.to(torch.float32)
+    if sample_rate != target_sr:
+        waveform = torchaudio.functional.resample(waveform, sample_rate, target_sr)
+    waveform = F.layer_norm(waveform, waveform.shape)
+    if device is not None:
+        waveform = waveform.to(device)
+    return waveform.unsqueeze(0)
+
+
 class AudioDeepfakeInferenceEngine:
     def __init__(
         self,
@@ -211,8 +272,9 @@ class AudioDeepfakeInferenceEngine:
         model_source_path = Path(self.model_source).expanduser()
 
         if model_source_path.is_file():
-            model = DeepfakeDetector()
             state_dict = _load_state_dict_from_path(model_source_path, self.device)
+            ssl_config = _infer_ssl_config_from_state_dict(state_dict)
+            model = DeepfakeDetector(ssl_config=ssl_config)
             model.load_state_dict(state_dict, strict=True)
         else:
             load_kwargs: Dict[str, Any] = {}
