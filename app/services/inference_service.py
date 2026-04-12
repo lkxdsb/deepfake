@@ -3,7 +3,7 @@ import os
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -14,7 +14,15 @@ from src.utility.builtin import ODLightningCLI, ODTrainer
 from app.core.config import Settings
 from app.utils.image_utils import load_image_rgb, rgb_to_chw_uint8
 from app.utils.video_utils import chw_rgb_to_bgr, read_video_frames, select_keyframe_indices, sliding_clip_indices
-from app.utils.vis_utils import extract_spatial_heatmap, overlay_heatmap_full, save_curve
+from app.utils.vis_utils import (
+    crop_image_to_bbox,
+    detect_and_crop_primary_face,
+    detect_primary_face_bbox,
+    extract_spatial_heatmap,
+    overlay_heatmap_full,
+    save_curve,
+    smooth_face_bboxes,
+)
 
 
 class InferenceService:
@@ -88,12 +96,34 @@ class InferenceService:
             "model_name": self.model_name,
         }
 
+    def _detect_video_face_bboxes(
+        self,
+        frames: List[torch.Tensor],
+    ) -> List[Optional[Tuple[int, int, int, int]]]:
+        raw_bboxes: List[Optional[Tuple[int, int, int, int]]] = []
+        fallback_bbox: Optional[Tuple[int, int, int, int]] = None
+        image_shape: Optional[Tuple[int, int, int]] = None
+
+        for frame in frames:
+            frame_bgr = chw_rgb_to_bgr(frame)
+            if image_shape is None:
+                image_shape = frame_bgr.shape
+            bbox = detect_primary_face_bbox(frame_bgr, fallback_bbox=fallback_bbox)
+            raw_bboxes.append(bbox)
+            if bbox is not None:
+                fallback_bbox = bbox
+
+        if image_shape is None:
+            return raw_bboxes
+        return smooth_face_bboxes(raw_bboxes, image_shape=image_shape)
+
     @torch.inference_mode()
     def predict_image(self, image_path: Path) -> Dict[str, Any]:
         self.ensure_model_loaded()
 
         image_rgb = load_image_rgb(image_path)
-        frame = rgb_to_chw_uint8(image_rgb)
+        face_rgb, face_bbox = detect_and_crop_primary_face(image_rgb)
+        frame = rgb_to_chw_uint8(face_rgb)
         clip = torch.stack([self.transform(frame) for _ in range(self.settings.num_frames)])
         batch = clip.unsqueeze(0).to(self.device)
 
@@ -113,6 +143,7 @@ class InferenceService:
             "model_name": self.model_name,
             "image_rgb": image_rgb,
             "heatmap": heatmap,
+            "face_bbox": face_bbox,
         }
 
     @torch.inference_mode()
@@ -131,6 +162,8 @@ class InferenceService:
 
         max_idx = int(indices[-1].item())
         clip_count = max(1, total_frames - max_idx)
+        face_bboxes = self._detect_video_face_bboxes(frames)
+        transformed_cache: Dict[int, torch.Tensor] = {}
 
         probs: List[float] = []
         clip_heatmaps: List[Optional[np.ndarray]] = []
@@ -154,7 +187,19 @@ class InferenceService:
                     clip_indices = indices
                 else:
                     clip_indices = indices + start
-                clip = torch.stack([self.transform(frames[int(idx.item())]) for idx in clip_indices])
+
+                clip_frames = []
+                for idx in clip_indices:
+                    frame_idx = int(idx.item())
+                    cached = transformed_cache.get(frame_idx)
+                    if cached is None:
+                        frame_rgb = frames[frame_idx].permute(1, 2, 0).numpy()
+                        cropped_rgb = crop_image_to_bbox(frame_rgb, face_bboxes[frame_idx])
+                        cached = self.transform(rgb_to_chw_uint8(cropped_rgb))
+                        transformed_cache[frame_idx] = cached
+                    clip_frames.append(cached)
+
+                clip = torch.stack(clip_frames)
                 clips.append(clip)
 
             batch = torch.stack(clips).to(self.device)
@@ -186,8 +231,10 @@ class InferenceService:
                 }
             )
 
+        best_clip_index = int(np.argmax(probs)) if probs else 0
         keyframe_clip_ids = select_keyframe_indices(probs, self.settings.keyframe_count)
         keyframes_saved: List[Path] = []
+        keyframe_path_by_clip: Dict[int, Path] = {}
         for rank, clip_id in enumerate(keyframe_clip_ids, start=1):
             start_offset = clip_offsets[clip_id] if clip_id < len(clip_offsets) else clip_id * clip_step
             if clip_count == 1 and total_frames <= max_idx:
@@ -204,16 +251,22 @@ class InferenceService:
             out_path.parent.mkdir(parents=True, exist_ok=True)
             cv2.imwrite(str(out_path), frame_bgr)
             keyframes_saved.append(out_path)
+            keyframe_path_by_clip[clip_id] = out_path
 
         curve_path = self.settings.outputs_reports_dir / f"{task_id}_curve.png"
         save_curve(probs, curve_path)
 
-        preview_path = keyframes_saved[0] if keyframes_saved else None
-
-        best_clip_index = int(np.argmax(probs)) if probs else 0
+        preview_path = keyframe_path_by_clip.get(best_clip_index, keyframes_saved[0] if keyframes_saved else None)
         best_attention_heatmap: Optional[np.ndarray] = None
+        best_attention_bbox: Optional[Tuple[int, int, int, int]] = None
         if 0 <= best_clip_index < len(clip_heatmaps):
             best_attention_heatmap = clip_heatmaps[best_clip_index]
+            best_start_offset = clip_offsets[best_clip_index] if best_clip_index < len(clip_offsets) else best_clip_index * clip_step
+            if clip_count == 1 and total_frames <= max_idx:
+                best_frame_idx = int(indices[-1].item())
+            else:
+                best_frame_idx = min(max_idx + best_start_offset, total_frames - 1)
+            best_attention_bbox = face_bboxes[best_frame_idx]
 
         return {
             "label": label,
@@ -227,6 +280,7 @@ class InferenceService:
             "fps": fps,
             "total_frames": total_frames,
             "attention_heatmap": best_attention_heatmap,
+            "attention_bbox": best_attention_bbox,
             "best_clip_index": best_clip_index,
             "clip_step": clip_step,
             "batch_size": batch_size,

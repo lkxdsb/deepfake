@@ -1,3 +1,4 @@
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -9,6 +10,15 @@ try:
     import matplotlib.pyplot as plt
 except Exception:
     plt = None
+
+
+@lru_cache(maxsize=1)
+def _load_face_detector() -> Optional[cv2.CascadeClassifier]:
+    cascade_path = Path(cv2.data.haarcascades) / "haarcascade_frontalface_default.xml"
+    detector = cv2.CascadeClassifier(str(cascade_path))
+    if detector.empty():
+        return None
+    return detector
 
 
 def extract_spatial_heatmap(
@@ -87,12 +97,42 @@ def render_heatmap_strip(heatmap: np.ndarray, repeat: int = 5, gap: int = 6) -> 
     return strip
 
 
-def detect_primary_face_bbox(image_bgr: np.ndarray) -> Optional[Tuple[int, int, int, int]]:
-    gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
-    cascade_path = Path(cv2.data.haarcascades) / "haarcascade_frontalface_default.xml"
-    detector = cv2.CascadeClassifier(str(cascade_path))
-    if detector.empty():
+def _clip_bbox_to_image(
+    bbox: Tuple[float, float, float, float],
+    image_shape: Tuple[int, int, int],
+) -> Optional[Tuple[int, int, int, int]]:
+    height, width = image_shape[:2]
+    x1, y1, x2, y2 = bbox
+    x1 = int(round(max(0, min(width - 1, x1))))
+    y1 = int(round(max(0, min(height - 1, y1))))
+    x2 = int(round(max(x1 + 1, min(width, x2))))
+    y2 = int(round(max(y1 + 1, min(height, y2))))
+    if x2 <= x1 or y2 <= y1:
         return None
+    return x1, y1, x2, y2
+
+
+def _expand_face_bbox(
+    image_shape: Tuple[int, int, int],
+    face_xywh: Tuple[int, int, int, int],
+    scale: float = 1.65,
+) -> Optional[Tuple[int, int, int, int]]:
+    x, y, w, h = [float(v) for v in face_xywh]
+    center_x = x + (w / 2.0)
+    center_y = y + (h / 2.0) + (h * 0.03)
+    side = max(w, h) * scale
+    half = side / 2.0
+    return _clip_bbox_to_image((center_x - half, center_y - half, center_x + half, center_y + half), image_shape)
+
+
+def detect_primary_face_bbox(
+    image_bgr: np.ndarray,
+    fallback_bbox: Optional[Tuple[int, int, int, int]] = None,
+) -> Optional[Tuple[int, int, int, int]]:
+    gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+    detector = _load_face_detector()
+    if detector is None:
+        return fallback_bbox
 
     faces = detector.detectMultiScale(
         gray,
@@ -101,23 +141,73 @@ def detect_primary_face_bbox(image_bgr: np.ndarray) -> Optional[Tuple[int, int, 
         minSize=(36, 36),
     )
     if len(faces) == 0:
-        return None
+        return fallback_bbox
 
-    x, y, w, h = max(faces, key=lambda item: int(item[2]) * int(item[3]))
-    pad_x = int(w * 0.18)
-    pad_y_top = int(h * 0.22)
-    pad_y_bottom = int(h * 0.30)
+    face_xywh = max(faces, key=lambda item: int(item[2]) * int(item[3]))
+    return _expand_face_bbox(image_bgr.shape, tuple(int(v) for v in face_xywh))
 
-    x1 = max(0, x - pad_x)
-    y1 = max(0, y - pad_y_top)
-    x2 = min(image_bgr.shape[1], x + w + pad_x)
-    y2 = min(image_bgr.shape[0], y + h + pad_y_bottom)
-    return x1, y1, x2, y2
+
+def crop_image_to_bbox(image: np.ndarray, bbox: Optional[Tuple[int, int, int, int]]) -> np.ndarray:
+    if bbox is None:
+        return image
+    x1, y1, x2, y2 = bbox
+    if x2 <= x1 or y2 <= y1:
+        return image
+    return np.ascontiguousarray(image[y1:y2, x1:x2])
+
+
+def detect_and_crop_primary_face(
+    image_rgb: np.ndarray,
+    fallback_bbox: Optional[Tuple[int, int, int, int]] = None,
+) -> Tuple[np.ndarray, Optional[Tuple[int, int, int, int]]]:
+    image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
+    bbox = detect_primary_face_bbox(image_bgr, fallback_bbox=fallback_bbox)
+    return crop_image_to_bbox(image_rgb, bbox), bbox
+
+
+def smooth_face_bboxes(
+    bboxes: List[Optional[Tuple[int, int, int, int]]],
+    image_shape: Tuple[int, int, int],
+    momentum: float = 0.65,
+) -> List[Optional[Tuple[int, int, int, int]]]:
+    smoothed: List[Optional[Tuple[int, int, int, int]]] = []
+    prev_bbox: Optional[np.ndarray] = None
+
+    for bbox in bboxes:
+        if bbox is None and prev_bbox is None:
+            smoothed.append(None)
+            continue
+
+        cur_bbox = prev_bbox if bbox is None else np.array(bbox, dtype=np.float32)
+        if prev_bbox is None:
+            blended = cur_bbox
+        else:
+            blended = (prev_bbox * (1.0 - momentum)) + (cur_bbox * momentum)
+
+        clipped = _clip_bbox_to_image(tuple(float(v) for v in blended.tolist()), image_shape)
+        smoothed.append(clipped)
+        prev_bbox = np.array(clipped, dtype=np.float32) if clipped is not None else prev_bbox
+
+    return smoothed
+
+
+def draw_face_bbox(
+    image_bgr: np.ndarray,
+    bbox: Optional[Tuple[int, int, int, int]],
+    label: str = "Face ROI",
+) -> np.ndarray:
+    out = image_bgr.copy()
+    if bbox is None:
+        return out
+    x1, y1, x2, y2 = bbox
+    cv2.rectangle(out, (x1, y1), (x2, y2), (0, 210, 255), 2)
+    cv2.putText(out, label, (x1 + 4, max(26, y1 - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 210, 255), 2)
+    return out
 
 
 def overlay_heatmap_full(image_bgr: np.ndarray, heatmap: np.ndarray, alpha: float = 0.45) -> np.ndarray:
     h, w = image_bgr.shape[:2]
-    hm = cv2.resize(heatmap, (w, h), interpolation=cv2.INTER_CUBIC)
+    hm = cv2.resize(heatmap, (w, h), interpolation=cv2.INTER_NEAREST)
     hm_u8 = (np.clip(hm, 0.0, 1.0) * 255).astype(np.uint8)
     hm_color = cv2.applyColorMap(hm_u8, cv2.COLORMAP_JET)
     return cv2.addWeighted(image_bgr, 1.0 - alpha, hm_color, alpha, 0.0)
@@ -137,7 +227,7 @@ def overlay_heatmap_on_bbox(
         return overlay_heatmap_full(image_bgr, heatmap, alpha=alpha)
 
     out = image_bgr.copy()
-    hm = cv2.resize(heatmap, (x2 - x1, y2 - y1), interpolation=cv2.INTER_CUBIC)
+    hm = cv2.resize(heatmap, (x2 - x1, y2 - y1), interpolation=cv2.INTER_NEAREST)
     hm_u8 = (np.clip(hm, 0.0, 1.0) * 255).astype(np.uint8)
     hm_color = cv2.applyColorMap(hm_u8, cv2.COLORMAP_JET)
     roi = out[y1:y2, x1:x2]
@@ -149,28 +239,30 @@ def overlay_heatmap_on_bbox(
 def build_explainability_panel(
     image_bgr: np.ndarray,
     heatmap: np.ndarray,
+    bbox: Optional[Tuple[int, int, int, int]] = None,
     repeat: int = 5,
     gap: int = 10,
 ) -> np.ndarray:
-    bbox = detect_primary_face_bbox(image_bgr)
+    bbox = bbox or detect_primary_face_bbox(image_bgr)
+    preview = draw_face_bbox(image_bgr, bbox)
     overlay = overlay_heatmap_on_bbox(image_bgr, heatmap, bbox=bbox)
     strip = render_heatmap_strip(heatmap, repeat=repeat, gap=6)
 
     target_h = max(image_bgr.shape[0], overlay.shape[0])
     target_w = max(image_bgr.shape[1], overlay.shape[1])
-    left = cv2.resize(image_bgr, (target_w, target_h), interpolation=cv2.INTER_CUBIC)
+    left = cv2.resize(preview, (target_w, target_h), interpolation=cv2.INTER_CUBIC)
     right = cv2.resize(overlay, (target_w, target_h), interpolation=cv2.INTER_CUBIC)
 
     top = np.full((target_h, target_w * 2 + gap, 3), 255, dtype=np.uint8)
     top[:, :target_w] = left
     top[:, target_w + gap :] = right
 
-    cv2.putText(top, "Preview", (12, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (32, 32, 32), 2)
-    cv2.putText(top, "Face-Focused Attention", (target_w + gap + 12, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (32, 32, 32), 2)
+    cv2.putText(top, "Detected Face ROI", (12, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (32, 32, 32), 2)
+    cv2.putText(top, "ROI Attention Overlay", (target_w + gap + 12, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (32, 32, 32), 2)
 
     strip_w = top.shape[1]
     strip_h = max(120, int(strip.shape[0] * (strip_w / max(strip.shape[1], 1))))
-    strip_resized = cv2.resize(strip, (strip_w, strip_h), interpolation=cv2.INTER_CUBIC)
+    strip_resized = cv2.resize(strip, (strip_w, strip_h), interpolation=cv2.INTER_NEAREST)
 
     title_h = 42
     bottom = np.full((strip_h + title_h, strip_w, 3), 255, dtype=np.uint8)

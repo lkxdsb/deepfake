@@ -45,7 +45,12 @@ class VideoService:
         if model_heatmap is not None and preview_path is not None and Path(preview_path).exists():
             preview_img = cv2.imread(str(preview_path))
             if preview_img is not None:
-                panel = build_explainability_panel(preview_img, model_heatmap, repeat=5)
+                panel = build_explainability_panel(
+                    preview_img,
+                    model_heatmap,
+                    bbox=infer.get("attention_bbox"),
+                    repeat=5,
+                )
                 heatmap_path = self.result_service.settings.outputs_heatmaps_dir / f"{task_id}.png"
                 heatmap_path.parent.mkdir(parents=True, exist_ok=True)
                 cv2.imwrite(str(heatmap_path), panel)

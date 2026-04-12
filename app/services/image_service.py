@@ -41,7 +41,12 @@ class ImageService:
         model_heatmap = infer.get("heatmap")
         if model_heatmap is not None:
             image_bgr = cv2.cvtColor(infer["image_rgb"], cv2.COLOR_RGB2BGR)
-            panel = build_explainability_panel(image_bgr, model_heatmap, repeat=5)
+            panel = build_explainability_panel(
+                image_bgr,
+                model_heatmap,
+                bbox=infer.get("face_bbox"),
+                repeat=5,
+            )
             heatmap_path = self.result_service.settings.outputs_heatmaps_dir / f"{task_id}.png"
             heatmap_path.parent.mkdir(parents=True, exist_ok=True)
             cv2.imwrite(str(heatmap_path), panel)
