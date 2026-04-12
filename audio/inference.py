@@ -31,6 +31,11 @@ except Exception as ex:  # pragma: no cover - optional dependency at runtime
 else:
     _HF_IMPORT_ERROR = None
 
+try:
+    from safetensors.torch import load_file as load_safetensors_file
+except Exception:
+    load_safetensors_file = None
+
 
 DEFAULT_MODEL_SOURCE = "nii-yamagishilab/xls-r-1b-anti-deepfake"
 AUDIO_FORMATS = (".mp3", ".wav", ".flac", ".m4a")
@@ -154,6 +159,33 @@ def _resolve_model_name(model_source: Union[str, Path]) -> str:
     return model_source
 
 
+def _normalize_state_dict(state: Any) -> Dict[str, Any]:
+    if isinstance(state, dict) and "state_dict" in state and isinstance(state["state_dict"], dict):
+        state = state["state_dict"]
+
+    if not isinstance(state, dict):
+        raise AudioDependencyError("invalid audio checkpoint format")
+
+    first_key = next(iter(state.keys()), "")
+    if first_key.startswith("module."):
+        state = {k.replace("module.", "", 1): v for k, v in state.items()}
+
+    return state
+
+
+def _load_state_dict_from_path(model_path: Path, device: torch.device) -> Dict[str, Any]:
+    suffix = model_path.suffix.lower()
+    if suffix == ".safetensors":
+        if load_safetensors_file is None:
+            raise AudioDependencyError(
+                "safetensors is required when AUDIO_MODEL_SOURCE points to a .safetensors file"
+            )
+        state = load_safetensors_file(str(model_path), device=str(device))
+    else:
+        state = torch.load(str(model_path), map_location=device)
+    return _normalize_state_dict(state)
+
+
 class AudioDeepfakeInferenceEngine:
     def __init__(
         self,
@@ -176,11 +208,18 @@ class AudioDeepfakeInferenceEngine:
             return
 
         ensure_audio_dependencies()
-        load_kwargs: Dict[str, Any] = {}
-        if self.cache_dir:
-            load_kwargs["cache_dir"] = self.cache_dir
+        model_source_path = Path(self.model_source).expanduser()
 
-        model = DeepfakeDetector.from_pretrained(self.model_source, **load_kwargs)
+        if model_source_path.is_file():
+            model = DeepfakeDetector()
+            state_dict = _load_state_dict_from_path(model_source_path, self.device)
+            model.load_state_dict(state_dict, strict=True)
+        else:
+            load_kwargs: Dict[str, Any] = {}
+            if self.cache_dir:
+                load_kwargs["cache_dir"] = self.cache_dir
+            model = DeepfakeDetector.from_pretrained(self.model_source, **load_kwargs)
+
         model.to(self.device)
         model.eval()
         self.model = model

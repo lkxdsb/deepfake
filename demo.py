@@ -267,7 +267,7 @@ if __name__ == "__main__":
         trainer_class=ODTrainer,
         save_config_callback=None,
         parser_kwargs={
-            "parser_mode": "omegaconf"
+            "parser_mode": "yaml"
         },
         auto_configure_optimizers=False,
         seed_everything_default=1019,

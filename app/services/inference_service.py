@@ -42,7 +42,7 @@ class InferenceService:
             run=False,
             trainer_class=ODTrainer,
             save_config_callback=None,
-            parser_kwargs={"parser_mode": "omegaconf"},
+            parser_kwargs={"parser_mode": "yaml"},
             auto_configure_optimizers=False,
             seed_everything_default=1019,
             args=args,

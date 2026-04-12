@@ -16,6 +16,7 @@ lightning
 open_clip_torch
 huggingface_hub
 fairseq
+safetensors
 pandas
 albumentations
 torchmetrics
