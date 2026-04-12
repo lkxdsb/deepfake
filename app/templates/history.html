@@ -1,33 +1,81 @@
-﻿{% extends "base.html" %}
-{% block title %}历史记录{% endblock %}
+{% extends "base.html" %}
+{% block title %}历史记录 - 多模态深度伪造检测平台{% endblock %}
+{% block body_class %}page-history{% endblock %}
 {% block content %}
-<div class="card">
-  <h2>历史记录</h2>
-  {% if items and items|length > 0 %}
-    <table class="table">
-      <thead>
-        <tr>
-          <th>时间</th><th>任务名</th><th>批次ID</th><th>类型</th><th>文件数</th><th>可疑数</th><th>平均分</th><th>总耗时(s)</th><th>详情</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in items %}
-          <tr>
-            <td>{{ item.created_at }}</td>
-            <td>{{ item.batch_name }}</td>
-            <td>{{ item.task_id }}</td>
-            <td>{{ item.file_type }}</td>
-            <td>{{ item.item_count }}</td>
-            <td>{{ item.fake_count }}</td>
-            <td>{{ '%.4f'|format(item.avg_score) }}</td>
-            <td>{{ '%.4f'|format(item.total_inference_time) }}</td>
-            <td><a href="/history/{{ item.task_id }}">打开</a> | <a href="/results/{{ item.task_id }}">结果页</a></td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p class="small-note">暂无历史记录。</p>
-  {% endif %}
-</div>
+<section class="history-shell">
+  <div class="result-command">
+    <div class="result-command__copy">
+      <p class="eyebrow">History Overview</p>
+      <h1>历史记录中心</h1>
+      <p>汇总历次检测任务、批次摘要与结果入口，支持在答辩前快速回看已跑通的样例。</p>
+    </div>
+  </div>
+
+  <div class="metric-band">
+    <div class="metric-tile">
+      <span>任务数</span>
+      <strong>{{ items|length }}</strong>
+    </div>
+    <div class="metric-tile">
+      <span>累计文件数</span>
+      <strong>{{ items|sum(attribute='item_count') if items else 0 }}</strong>
+    </div>
+    <div class="metric-tile">
+      <span>累计可疑数</span>
+      <strong>{{ items|sum(attribute='fake_count') if items else 0 }}</strong>
+    </div>
+    <div class="metric-tile">
+      <span>演示入口</span>
+      <strong>History</strong>
+    </div>
+  </div>
+
+  <article class="surface-panel">
+    <div class="panel-heading">
+      <h2>批次列表</h2>
+      <p>优先从这里打开已验证的任务，减少现场临时上传的不确定性。</p>
+    </div>
+    {% if items and items|length > 0 %}
+      <div class="table-shell">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>任务名</th>
+              <th>批次 ID</th>
+              <th>类型</th>
+              <th>文件数</th>
+              <th>可疑数</th>
+              <th>平均分</th>
+              <th>总耗时</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+              <tr>
+                <td>{{ item.created_at }}</td>
+                <td>{{ item.batch_name }}</td>
+                <td>{{ item.task_id }}</td>
+                <td>{{ item.file_type }}</td>
+                <td>{{ item.item_count }}</td>
+                <td>{{ item.fake_count }}</td>
+                <td>{{ '%.4f'|format(item.avg_score) }}</td>
+                <td>{{ '%.4f'|format(item.total_inference_time) }}</td>
+                <td>
+                  <div class="table-links">
+                    <a href="/history/{{ item.task_id }}">批次详情</a>
+                    <a href="/results/{{ item.task_id }}">结果页</a>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="inline-note">暂无历史记录。</p>
+    {% endif %}
+  </article>
+</section>
 {% endblock %}

@@ -1,18 +1,59 @@
-﻿{% extends "base.html" %}
-{% block title %}图片检测{% endblock %}
+{% extends "base.html" %}
+{% block title %}图片检测 - 多模态深度伪造检测平台{% endblock %}
+{% block body_class %}page-workbench{% endblock %}
 {% block content %}
-<div class="card">
-  <h2>图片检测</h2>
-  <p class="small-note">支持格式：jpg / jpeg / png，支持单张和批量上传</p>
-  <form id="image-form">
-    <label class="field-label" for="image-batch-name">任务名（批量时建议填写）</label>
-    <input class="text-input" type="text" id="image-batch-name" placeholder="例如：答辩图片样例集">
-    <label class="field-label" for="image-file">选择文件</label>
-    <input type="file" id="image-file" accept=".jpg,.jpeg,.png" multiple required>
-    <button type="submit">开始检测</button>
-  </form>
-  <p id="status" class="small-note"></p>
-</div>
+<section class="workbench-hero">
+  <div class="section-heading">
+    <p class="eyebrow">Image Forensics</p>
+    <h1>图片检测工作台</h1>
+    <p>上传单张或批量图像样本，输出真假判定、置信度和空间热力图，适合现场演示“样本输入到证据输出”的完整流程。</p>
+  </div>
+  <div class="quick-pills">
+    <span>支持格式：jpg / jpeg / png</span>
+    <span>批量上传</span>
+    <span>热力图解释</span>
+  </div>
+</section>
+
+<section class="workbench-layout">
+  <div class="workbench-panel workbench-panel--primary">
+    <div class="panel-heading">
+      <h2>上传样本</h2>
+      <p>建议批量任务填写任务名，便于结果页和历史页快速定位。</p>
+    </div>
+    <form id="image-form" class="forensics-form">
+      <label class="field-label" for="image-batch-name">任务名</label>
+      <input class="text-input" type="text" id="image-batch-name" placeholder="例如：答辩图片样例集">
+
+      <label class="field-label" for="image-file">选择文件</label>
+      <input class="file-input" type="file" id="image-file" accept=".jpg,.jpeg,.png" multiple required>
+
+      <button class="button button--primary button--full" type="submit">开始图片检测</button>
+    </form>
+    <p id="status" class="inline-status inline-status--muted">待命中。选择样本后即可启动检测。</p>
+  </div>
+
+  <aside class="workbench-panel workbench-panel--secondary">
+    <div class="panel-heading">
+      <h2>输出内容</h2>
+      <p>结果页默认突出结论与可解释证据，方便现场录屏展示。</p>
+    </div>
+    <div class="spec-list">
+      <div>
+        <strong>判定结果</strong>
+        <span>输出 REAL / FAKE 结论与分数。</span>
+      </div>
+      <div>
+        <strong>可解释区域</strong>
+        <span>可用时显示空间热力图与重点区域。</span>
+      </div>
+      <div>
+        <strong>批次留存</strong>
+        <span>检测后自动写入历史记录，支持后续复盘。</span>
+      </div>
+    </div>
+  </aside>
+</section>
 
 <script>
 document.getElementById('image-form').addEventListener('submit', async (e) => {
@@ -21,7 +62,8 @@ document.getElementById('image-form').addEventListener('submit', async (e) => {
   const fileInput = document.getElementById('image-file');
   const batchNameInput = document.getElementById('image-batch-name');
   if (!fileInput.files.length) {
-    status.textContent = '请先选择图片文件';
+    status.textContent = '请先选择图片文件。';
+    status.className = 'inline-status inline-status--error';
     return;
   }
 
@@ -32,7 +74,7 @@ document.getElementById('image-form').addEventListener('submit', async (e) => {
   if (batchNameInput.value.trim()) {
     fd.append('batch_name', batchNameInput.value.trim());
   }
-  status.className = 'small-note';
+  status.className = 'inline-status inline-status--pending';
   status.textContent = `检测中，共 ${fileInput.files.length} 个文件，请稍候...`;
 
   try {
@@ -45,7 +87,7 @@ document.getElementById('image-form').addEventListener('submit', async (e) => {
     window.location.href = `/results/${targetTaskId}`;
   } catch (err) {
     status.textContent = `检测失败：${err.message}`;
-    status.className = 'error';
+    status.className = 'inline-status inline-status--error';
   }
 });
 </script>

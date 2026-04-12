@@ -11,8 +11,11 @@ Pillow
 matplotlib
 torch
 torchvision
+torchaudio
 lightning
 open_clip_torch
+huggingface_hub
+fairseq
 pandas
 albumentations
 torchmetrics

@@ -1,18 +1,59 @@
-﻿{% extends "base.html" %}
-{% block title %}视频检测{% endblock %}
+{% extends "base.html" %}
+{% block title %}视频检测 - 多模态深度伪造检测平台{% endblock %}
+{% block body_class %}page-workbench{% endblock %}
 {% block content %}
-<div class="card">
-  <h2>视频检测</h2>
-  <p class="small-note">支持格式：mp4 / avi / mov / mkv，支持单条和批量上传</p>
-  <form id="video-form">
-    <label class="field-label" for="video-batch-name">任务名（批量时建议填写）</label>
-    <input class="text-input" type="text" id="video-batch-name" placeholder="例如：答辩视频样例集">
-    <label class="field-label" for="video-file">选择文件</label>
-    <input type="file" id="video-file" accept=".mp4,.avi,.mov,.mkv" multiple required>
-    <button type="submit">开始检测</button>
-  </form>
-  <p id="status" class="small-note"></p>
-</div>
+<section class="workbench-hero">
+  <div class="section-heading">
+    <p class="eyebrow">Video Forensics</p>
+    <h1>视频检测工作台</h1>
+    <p>上传单条或批量视频样本，系统将输出视频级真假结论、关键帧、帧级概率曲线与热力图证据，适合比赛现场完整演示。</p>
+  </div>
+  <div class="quick-pills">
+    <span>支持格式：mp4 / avi / mov / mkv</span>
+    <span>批量上传</span>
+    <span>关键帧与曲线输出</span>
+  </div>
+</section>
+
+<section class="workbench-layout">
+  <div class="workbench-panel workbench-panel--primary">
+    <div class="panel-heading">
+      <h2>上传样本</h2>
+      <p>视频任务推理时间相对更长，建议在答辩时提前准备一组短时长样例进行演示。</p>
+    </div>
+    <form id="video-form" class="forensics-form">
+      <label class="field-label" for="video-batch-name">任务名</label>
+      <input class="text-input" type="text" id="video-batch-name" placeholder="例如：答辩视频样例集">
+
+      <label class="field-label" for="video-file">选择文件</label>
+      <input class="file-input" type="file" id="video-file" accept=".mp4,.avi,.mov,.mkv" multiple required>
+
+      <button class="button button--primary button--full" type="submit">开始视频检测</button>
+    </form>
+    <p id="status" class="inline-status inline-status--muted">待命中。建议优先使用现场可快速推理的视频样本。</p>
+  </div>
+
+  <aside class="workbench-panel workbench-panel--secondary">
+    <div class="panel-heading">
+      <h2>输出内容</h2>
+      <p>结果页会优先展示最适合答辩解释的视频证据。</p>
+    </div>
+    <div class="spec-list">
+      <div>
+        <strong>视频级结论</strong>
+        <span>输出整体真假、置信度与推理耗时。</span>
+      </div>
+      <div>
+        <strong>证据联动</strong>
+        <span>同步展示关键帧、热力图与帧级概率曲线。</span>
+      </div>
+      <div>
+        <strong>批次浏览</strong>
+        <span>检测完成后可在结果页切换多条样本。</span>
+      </div>
+    </div>
+  </aside>
+</section>
 
 <script>
 document.getElementById('video-form').addEventListener('submit', async (e) => {
@@ -21,7 +62,8 @@ document.getElementById('video-form').addEventListener('submit', async (e) => {
   const fileInput = document.getElementById('video-file');
   const batchNameInput = document.getElementById('video-batch-name');
   if (!fileInput.files.length) {
-    status.textContent = '请先选择视频文件';
+    status.textContent = '请先选择视频文件。';
+    status.className = 'inline-status inline-status--error';
     return;
   }
 
@@ -32,7 +74,7 @@ document.getElementById('video-form').addEventListener('submit', async (e) => {
   if (batchNameInput.value.trim()) {
     fd.append('batch_name', batchNameInput.value.trim());
   }
-  status.className = 'small-note';
+  status.className = 'inline-status inline-status--pending';
   status.textContent = `检测中，共 ${fileInput.files.length} 个视频，处理时间会更长，请稍候...`;
 
   try {
@@ -45,7 +87,7 @@ document.getElementById('video-form').addEventListener('submit', async (e) => {
     window.location.href = `/results/${targetTaskId}`;
   } catch (err) {
     status.textContent = `检测失败：${err.message}`;
-    status.className = 'error';
+    status.className = 'inline-status inline-status--error';
   }
 });
 </script>

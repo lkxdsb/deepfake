@@ -1,51 +1,92 @@
-﻿{% extends "base.html" %}
-{% block title %}历史详情{% endblock %}
+{% extends "base.html" %}
+{% block title %}历史详情 - 多模态深度伪造检测平台{% endblock %}
+{% block body_class %}page-history{% endblock %}
 {% block content %}
-<div class="card">
-  <h2>历史详情</h2>
-  {% if batch %}
-    <p class="small-note">任务 ID: {{ batch.task_id }}</p>
-    <div class="kv">
-      <div>任务名</div><div>{{ batch.batch_name }}</div>
-      <div>文件类型</div><div>{{ batch.file_type }}</div>
-      <div>文件数</div><div>{{ batch.item_count }}</div>
-      <div>可疑数</div><div>{{ batch.fake_count }}</div>
-      <div>平均分</div><div>{{ '%.4f'|format(batch.avg_score) }}</div>
-      <div>总耗时</div><div>{{ '%.4f'|format(batch.total_inference_time) }}s</div>
-      <div>创建时间</div><div>{{ batch.created_at }}</div>
+<section class="history-shell">
+  <div class="result-command">
+    <div class="result-command__copy">
+      <p class="eyebrow">Batch Detail</p>
+      <h1>{% if batch %}{{ batch.batch_name }}{% else %}历史详情{% endif %}</h1>
+      {% if batch %}
+        <p>任务 ID：{{ batch.task_id }} · 文件类型：{{ batch.file_type }} · 创建时间：{{ batch.created_at }}</p>
+      {% else %}
+        <p>任务不存在。</p>
+      {% endif %}
     </div>
-    <p style="margin-top:12px;"><a class="btn" href="/results/{{ batch.task_id }}">打开结果页</a></p>
-  {% else %}
-    <p class="error">任务不存在。</p>
-  {% endif %}
-</div>
+    {% if batch %}
+      <a class="button button--primary button--small" href="/results/{{ batch.task_id }}">打开结果页</a>
+    {% endif %}
+  </div>
 
-{% if items and items|length > 0 %}
-<div class="card">
-  <h3>批次明细</h3>
-  <table class="table">
-    <thead>
-      <tr><th>序号</th><th>文件名</th><th>结果</th><th>分数</th><th>耗时(s)</th><th>详情</th></tr>
-    </thead>
-    <tbody>
-      {% for item in items %}
-        <tr>
-          <td>{{ loop.index }}</td>
-          <td>{{ item.record.file_name }}</td>
-          <td>
-            {% if item.record.result_label == 'fake' %}
-              <span class="label-fake">FAKE</span>
-            {% else %}
-              <span class="label-real">REAL</span>
-            {% endif %}
-          </td>
-          <td>{{ '%.4f'|format(item.record.score) }}</td>
-          <td>{{ '%.4f'|format(item.record.inference_time) }}</td>
-          <td><a href="/results/{{ item.record.task_id }}">打开结果页</a></td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% endif %}
+  {% if batch %}
+    <div class="metric-band">
+      <div class="metric-tile">
+        <span>文件数</span>
+        <strong>{{ batch.item_count }}</strong>
+      </div>
+      <div class="metric-tile">
+        <span>可疑数</span>
+        <strong>{{ batch.fake_count }}</strong>
+      </div>
+      <div class="metric-tile">
+        <span>平均分</span>
+        <strong>{{ '%.4f'|format(batch.avg_score) }}</strong>
+      </div>
+      <div class="metric-tile">
+        <span>总耗时</span>
+        <strong>{{ '%.4f'|format(batch.total_inference_time) }}s</strong>
+      </div>
+    </div>
+
+    <article class="surface-panel">
+      <div class="panel-heading">
+        <h2>批次摘要</h2>
+        <p>当前批次的核心统计信息。</p>
+      </div>
+      <div class="detail-grid">
+        <div>任务名</div><div>{{ batch.batch_name }}</div>
+        <div>文件类型</div><div>{{ batch.file_type }}</div>
+        <div>文件数</div><div>{{ batch.item_count }}</div>
+        <div>可疑数</div><div>{{ batch.fake_count }}</div>
+        <div>平均分</div><div>{{ '%.4f'|format(batch.avg_score) }}</div>
+        <div>总耗时</div><div>{{ '%.4f'|format(batch.total_inference_time) }}s</div>
+        <div>创建时间</div><div>{{ batch.created_at }}</div>
+      </div>
+    </article>
+  {% else %}
+    <article class="surface-panel">
+      <p class="inline-status inline-status--error">任务不存在。</p>
+    </article>
+  {% endif %}
+
+  {% if items and items|length > 0 %}
+    <article class="surface-panel">
+      <div class="panel-heading">
+        <h2>批次明细</h2>
+        <p>逐条查看样本结论，并可跳转到对应结果页。</p>
+      </div>
+      <div class="table-shell">
+        <table class="table">
+          <thead>
+            <tr><th>序号</th><th>文件名</th><th>结果</th><th>分数</th><th>耗时</th><th>详情</th></tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ item.record.file_name }}</td>
+                <td>
+                  <span class="verdict-badge verdict-badge--{{ item.record.result_label }}">{{ item.record.result_label|upper }}</span>
+                </td>
+                <td>{{ '%.4f'|format(item.record.score) }}</td>
+                <td>{{ '%.4f'|format(item.record.inference_time) }}s</td>
+                <td><a href="/results/{{ item.record.task_id }}">打开结果页</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  {% endif %}
+</section>
 {% endblock %}

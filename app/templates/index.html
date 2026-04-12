@@ -1,43 +1,163 @@
-﻿{% extends "base.html" %}
-{% block title %}首页 - Deepfake Detection{% endblock %}
+{% extends "base.html" %}
+{% block title %}首页 - 多模态深度伪造检测平台{% endblock %}
+{% block body_class %}page-home{% endblock %}
+{% block main_class %}site-main--home{% endblock %}
 {% block content %}
-<div class="card">
-  <h1>深度伪造检测系统</h1>
-  <p>基于现有模型权重与推理代码的工程化 Web MVP。支持图片、视频与音频检测、结果展示、历史记录和示例演示。</p>
-  <p class="small-note">默认演示样例：{{ demo_video }}</p>
-</div>
-
-<div class="grid">
-  <div class="card">
-    <h3>图片检测</h3>
-    <p>上传 jpg/png/jpeg，返回真假、置信度与可解释热力图（可用时）。</p>
-    <a class="btn" href="/detect/image">进入图片检测</a>
-  </div>
-  <div class="card">
-    <h3>视频检测</h3>
-    <p>上传 mp4/avi/mov/mkv，返回视频级判定、关键帧和概率曲线。</p>
-    <a class="btn" href="/detect/video">进入视频检测</a>
-  </div>
-  <div class="card">
-    <h3>音频检测</h3>
-    <p>上传 wav/mp3/flac，返回 AASIST 真假判定、欺骗概率与阈值解释。</p>
-    <a class="btn" href="/detect/audio">进入音频检测</a>
-  </div>
-  <div class="card">
-    <h3>示例演示</h3>
-    <p>一键跑通内置样例，适合比赛答辩现场演示。</p>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <button onclick="runDemo('video')">演示视频样例</button>
-      <button class="secondary" onclick="runDemo('image')">演示图片样例</button>
+<section class="hero">
+  <div class="hero__copy">
+    <p class="eyebrow">数字取证 · 比赛演示版</p>
+    <h1>多模态深度伪造检测平台</h1>
+    <p class="hero__lede">
+      面向比赛展示与现场答辩的智能鉴伪工作站，覆盖图片、视频、音频三类样本，
+      以统一入口输出真假判定、可解释证据与历史记录。
+    </p>
+    <div class="hero__actions">
+      <a class="button button--primary" href="/detect/video">进入检测工作台</a>
+      <button class="button button--ghost" type="button" onclick="runDemo('video')">一键运行示例</button>
     </div>
-    <p id="demo-status" class="small-note"></p>
+    <p id="demo-status" class="inline-status inline-status--muted">默认演示样例：{{ demo_video }}</p>
+    <div class="signal-strip">
+      <div class="signal-strip__item">
+        <span>03</span>
+        <strong>检测模态</strong>
+        <small>图片 / 视频 / 音频统一入口</small>
+      </div>
+      <div class="signal-strip__item">
+        <span>01</span>
+        <strong>结果视图</strong>
+        <small>预览、热力图、曲线与关键帧联动展示</small>
+      </div>
+      <div class="signal-strip__item">
+        <span>24H</span>
+        <strong>历史追踪</strong>
+        <small>记录任务摘要与批次明细，便于答辩复盘</small>
+      </div>
+    </div>
   </div>
-</div>
+  <div class="hero__visual">
+    <div class="hero-visual__frame">
+      <img src="/static/images/hero-forensics.jpg" alt="冷色数字取证风主视觉">
+      <div class="hero-overlay hero-overlay--scan"></div>
+      <div class="hero-overlay hero-overlay--grid"></div>
+      <div class="hero-tag hero-tag--alert">
+        <span>RISK SIGNAL</span>
+        <strong>伪造风险待研判</strong>
+      </div>
+      <div class="hero-tag hero-tag--metrics">
+        <span>Inspection Focus</span>
+        <strong>Face Region / Temporal Drift / Audio Trace</strong>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-block section-block--modes">
+  <div class="section-heading">
+    <p class="eyebrow">Core Capabilities</p>
+    <h2>三种模态，一套取证流程</h2>
+    <p>首屏直接给评委看到系统能力边界、输入形式和输出证据，避免落入“功能很多但重点不清”的后台页面感。</p>
+  </div>
+  <div class="mode-grid">
+    <article class="mode-card">
+      <p class="mode-card__index">01</p>
+      <h3>图片检测</h3>
+      <p>支持 jpg / jpeg / png 上传，输出真假判定、置信度与可解释热力图。</p>
+      <a class="text-link" href="/detect/image">进入图片检测</a>
+    </article>
+    <article class="mode-card">
+      <p class="mode-card__index">02</p>
+      <h3>视频检测</h3>
+      <p>支持单条与批量视频样本，输出视频级结论、关键帧与帧级概率曲线。</p>
+      <a class="text-link" href="/detect/video">进入视频检测</a>
+    </article>
+    <article class="mode-card">
+      <p class="mode-card__index">03</p>
+      <h3>音频检测</h3>
+      <p>基于音频 deepfake 模型输出真假、阈值比较与伪造概率说明。</p>
+      <a class="text-link" href="/detect/audio">进入音频检测</a>
+    </article>
+  </div>
+</section>
+
+<section class="section-block evidence-section">
+  <div class="section-heading">
+    <p class="eyebrow">Evidence View</p>
+    <h2>把结果页做成“证据链展示”而不是纯文本回显</h2>
+    <p>平台默认突出示例画面、风险判定、空间热区和时间曲线，让真假结论有直观依据。</p>
+  </div>
+  <div class="evidence-layout">
+    <div class="evidence-visual">
+      <img src="/static/images/demo-evidence.png" alt="系统检测示例">
+    </div>
+    <div class="evidence-copy">
+      <div class="info-stack">
+        <div>
+          <span class="info-stack__label">取证结论</span>
+          <strong>真假判定 + 置信度</strong>
+        </div>
+        <div>
+          <span class="info-stack__label">解释依据</span>
+          <strong>热力图、关键帧、概率曲线联动</strong>
+        </div>
+        <div>
+          <span class="info-stack__label">演示方式</span>
+          <strong>支持单样本与批次翻页答辩展示</strong>
+        </div>
+      </div>
+      <a class="button button--secondary" href="/history">查看历史记录</a>
+    </div>
+  </div>
+</section>
+
+<section class="section-block method-section">
+  <div class="section-heading">
+    <p class="eyebrow">Model Basis</p>
+    <h2>方法亮点与系统能力相互支撑</h2>
+    <p>现有模型研究图示继续保留，但在页面中作为“可信依据”区出现，而不是把首页做成论文海报。</p>
+  </div>
+  <div class="method-layout">
+    <div class="method-copy">
+      <div class="spec-list">
+        <div>
+          <strong>视觉主线</strong>
+          <span>强调深伪检测、数字取证、风险信号与可解释分析。</span>
+        </div>
+        <div>
+          <strong>交互主线</strong>
+          <span>先看到能力入口，再看到证据，再进入工作台检测。</span>
+        </div>
+        <div>
+          <strong>答辩主线</strong>
+          <span>一键演示、实时跳转、历史留存，满足现场录屏与问答。</span>
+        </div>
+      </div>
+      <div class="hero__actions">
+        <button class="button button--primary" type="button" onclick="runDemo('image')">运行图片示例</button>
+        <a class="button button--ghost" href="/detect/video">开始正式演示</a>
+      </div>
+    </div>
+    <div class="method-visual">
+      <img src="/static/images/method-teaser.png" alt="模型方法图示">
+    </div>
+  </div>
+</section>
+
+<section class="section-block final-cta">
+  <div>
+    <p class="eyebrow">Ready For Demo</p>
+    <h2>从上传到结论，全链路在一个界面里讲清楚。</h2>
+  </div>
+  <div class="hero__actions">
+    <a class="button button--primary" href="/detect/image">开始检测</a>
+    <a class="button button--secondary" href="/history">查看历史</a>
+  </div>
+</section>
 
 <script>
 async function runDemo(mode) {
   const status = document.getElementById('demo-status');
-  status.textContent = '运行中，请稍候...';
+  status.textContent = '示例任务启动中，请稍候...';
+  status.className = 'inline-status inline-status--pending';
   try {
     const res = await fetch(`/api/demo/run?mode=${mode}`, { method: 'POST' });
     const data = await res.json();
@@ -47,7 +167,7 @@ async function runDemo(mode) {
     window.location.href = `/results/${data.data.task_id}`;
   } catch (err) {
     status.textContent = `示例运行失败：${err.message}`;
-    status.className = 'error';
+    status.className = 'inline-status inline-status--error';
   }
 }
 </script>

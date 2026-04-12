@@ -1,18 +1,59 @@
-﻿{% extends "base.html" %}
-{% block title %}音频检测{% endblock %}
+{% extends "base.html" %}
+{% block title %}音频检测 - 多模态深度伪造检测平台{% endblock %}
+{% block body_class %}page-workbench{% endblock %}
 {% block content %}
-<div class="card">
-  <h2>音频检测</h2>
-  <p class="small-note">支持格式：wav / mp3 / flac，支持单条和批量上传</p>
-  <form id="audio-form">
-    <label class="field-label" for="audio-batch-name">任务名（批量时建议填写）</label>
-    <input class="text-input" type="text" id="audio-batch-name" placeholder="例如：答辩音频样例集">
-    <label class="field-label" for="audio-file">选择文件</label>
-    <input type="file" id="audio-file" accept=".wav,.mp3,.flac" multiple required>
-    <button type="submit">开始检测</button>
-  </form>
-  <p id="status" class="small-note"></p>
-</div>
+<section class="workbench-hero">
+  <div class="section-heading">
+    <p class="eyebrow">Audio Forensics</p>
+    <h1>音频检测工作台</h1>
+    <p>上传语音样本后，系统基于音频 deepfake 模型输出真假结论、伪造概率与阈值解释，适合配合多模态演示形成完整系统展示。</p>
+  </div>
+  <div class="quick-pills">
+    <span>支持格式：wav / mp3 / flac</span>
+    <span>批量上传</span>
+    <span>阈值与概率解释</span>
+  </div>
+</section>
+
+<section class="workbench-layout">
+  <div class="workbench-panel workbench-panel--primary">
+    <div class="panel-heading">
+      <h2>上传样本</h2>
+      <p>音频任务检测完成后可直接在结果页试听原始样本，并查看模型阈值与原始分数。</p>
+    </div>
+    <form id="audio-form" class="forensics-form">
+      <label class="field-label" for="audio-batch-name">任务名</label>
+      <input class="text-input" type="text" id="audio-batch-name" placeholder="例如：答辩音频样例集">
+
+      <label class="field-label" for="audio-file">选择文件</label>
+      <input class="file-input" type="file" id="audio-file" accept=".wav,.mp3,.flac" multiple required>
+
+      <button class="button button--primary button--full" type="submit">开始音频检测</button>
+    </form>
+    <p id="status" class="inline-status inline-status--muted">待命中。建议准备真实语音与伪造语音各一段做对照展示。</p>
+  </div>
+
+  <aside class="workbench-panel workbench-panel--secondary">
+    <div class="panel-heading">
+      <h2>输出内容</h2>
+      <p>音频页突出阈值判断与概率说明，保证评委能快速理解判断依据。</p>
+    </div>
+    <div class="spec-list">
+      <div>
+        <strong>真假判定</strong>
+        <span>输出 REAL / FAKE 结论和置信度。</span>
+      </div>
+      <div>
+        <strong>阈值解释</strong>
+        <span>展示 fake_prob、threshold 与时长信息。</span>
+      </div>
+      <div>
+        <strong>试听入口</strong>
+        <span>结果页直接播放音频，适合现场对照说明。</span>
+      </div>
+    </div>
+  </aside>
+</section>
 
 <script>
 document.getElementById('audio-form').addEventListener('submit', async (e) => {
@@ -21,7 +62,8 @@ document.getElementById('audio-form').addEventListener('submit', async (e) => {
   const fileInput = document.getElementById('audio-file');
   const batchNameInput = document.getElementById('audio-batch-name');
   if (!fileInput.files.length) {
-    status.textContent = '请先选择音频文件';
+    status.textContent = '请先选择音频文件。';
+    status.className = 'inline-status inline-status--error';
     return;
   }
 
@@ -32,7 +74,7 @@ document.getElementById('audio-form').addEventListener('submit', async (e) => {
   if (batchNameInput.value.trim()) {
     fd.append('batch_name', batchNameInput.value.trim());
   }
-  status.className = 'small-note';
+  status.className = 'inline-status inline-status--pending';
   status.textContent = `检测中，共 ${fileInput.files.length} 个音频，请稍候...`;
 
   try {
@@ -45,7 +87,7 @@ document.getElementById('audio-form').addEventListener('submit', async (e) => {
     window.location.href = `/results/${targetTaskId}`;
   } catch (err) {
     status.textContent = `检测失败：${err.message}`;
-    status.className = 'error';
+    status.className = 'inline-status inline-status--error';
   }
 });
 </script>

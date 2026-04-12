@@ -1,6 +1,7 @@
 ﻿import os
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -29,10 +30,10 @@ class Settings:
     max_video_mb: int
     max_audio_mb: int
     demo_video_path: Path
-    aasist_root: Path
-    aasist_config_path: Path
-    aasist_model_path: Path
-    aasist_threshold: float
+    audio_model_source: str
+    audio_model_cache_dir: Optional[Path]
+    audio_fake_threshold: float
+    audio_sample_rate: int
 
     @property
     def templates_dir(self) -> Path:
@@ -62,7 +63,10 @@ class Settings:
 def load_settings() -> Settings:
     base_dir = Path(__file__).resolve().parents[2]
     output_root = Path(os.getenv("OUTPUT_ROOT", str(base_dir / "outputs"))).resolve()
-    aasist_root = Path(os.getenv("AASIST_ROOT", str(base_dir / "aasist-main"))).resolve()
+    audio_model_cache_dir_env = os.getenv("AUDIO_MODEL_CACHE_DIR")
+    audio_model_cache_dir = (
+        Path(audio_model_cache_dir_env).resolve() if audio_model_cache_dir_env else None
+    )
 
     return Settings(
         base_dir=base_dir,
@@ -104,20 +108,10 @@ def load_settings() -> Settings:
                 str(base_dir / "resources" / "videos" / "000_003.mp4"),
             )
         ).resolve(),
-        aasist_root=aasist_root,
-        aasist_config_path=Path(
-            os.getenv(
-                "AASIST_CONFIG_PATH",
-                str(aasist_root / "config" / "AASIST-L.conf"),
-            )
-        ).resolve(),
-        aasist_model_path=Path(
-            os.getenv(
-                "AASIST_MODEL_PATH",
-                str(aasist_root / "exp_result" / "LA_AASIST-L_ep100_bs24" / "weights" / "best.pth"),
-            )
-        ).resolve(),
-        aasist_threshold=float(os.getenv("AASIST_THRESHOLD", "1.8712")),
+        audio_model_source=os.getenv("AUDIO_MODEL_SOURCE", "nii-yamagishilab/xls-r-1b-anti-deepfake"),
+        audio_model_cache_dir=audio_model_cache_dir,
+        audio_fake_threshold=float(os.getenv("AUDIO_FAKE_THRESHOLD", "0.5")),
+        audio_sample_rate=int(os.getenv("AUDIO_SAMPLE_RATE", "16000")),
     )
 
 

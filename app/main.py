@@ -1,4 +1,5 @@
-﻿import logging
+import logging
+import mimetypes
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -13,6 +14,8 @@ from app.services.container import build_services
 
 
 configure_logging()
+mimetypes.add_type("font/woff2", ".woff2")
+mimetypes.add_type("font/ttf", ".ttf")
 
 settings.output_root.mkdir(parents=True, exist_ok=True)
 

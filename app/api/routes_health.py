@@ -16,5 +16,6 @@ def health(services: ServiceContainer = Depends(get_services)):
     payload["audio_model_name"] = audio_health["model_name"]
     payload["audio_device"] = audio_health["device"]
     payload["audio_dependencies_ready"] = audio_health.get("dependencies_ready", False)
+    payload["audio_missing_dependencies"] = audio_health.get("missing_dependencies", [])
 
     return payload
