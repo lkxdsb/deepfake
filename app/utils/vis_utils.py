@@ -1,4 +1,4 @@
-from functools import lru_cache
+﻿from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -11,6 +11,11 @@ try:
 except Exception:
     plt = None
 
+try:
+    import face_alignment
+except Exception:
+    face_alignment = None
+
 
 @lru_cache(maxsize=1)
 def _load_face_detector() -> Optional[cv2.CascadeClassifier]:
@@ -19,6 +24,21 @@ def _load_face_detector() -> Optional[cv2.CascadeClassifier]:
     if detector.empty():
         return None
     return detector
+
+
+@lru_cache(maxsize=1)
+def _load_landmark_detector() -> Any:
+    if face_alignment is None:
+        return None
+    try:
+        return face_alignment.FaceAlignment(
+            face_alignment.LandmarksType.TWO_D,
+            face_detector="sfd",
+            flip_input=False,
+            device="cuda" if torch.cuda.is_available() else "cpu",
+        )
+    except Exception:
+        return None
 
 
 def _normalize_heatmap_map(heatmap: np.ndarray) -> np.ndarray:
@@ -66,6 +86,217 @@ def _build_face_component_priors(grid_size: int) -> Dict[str, np.ndarray]:
         "nose": nose.astype(np.float32),
         "mouth": mouth.astype(np.float32),
     }
+
+
+def _extract_landmarks_in_bbox(
+    image_bgr: np.ndarray,
+    bbox: Optional[Tuple[int, int, int, int]],
+) -> Optional[np.ndarray]:
+    if bbox is None:
+        return None
+
+    detector = _load_landmark_detector()
+    if detector is None:
+        return None
+
+    x1, y1, x2, y2 = bbox
+    if x2 <= x1 or y2 <= y1:
+        return None
+
+    crop = image_bgr[y1:y2, x1:x2]
+    if crop.size == 0:
+        return None
+
+    crop_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
+    try:
+        if hasattr(detector, "get_landmarks_from_image"):
+            preds = detector.get_landmarks_from_image(crop_rgb)
+        else:
+            preds = detector.get_landmarks(crop_rgb)
+    except Exception:
+        return None
+
+    if preds is None or len(preds) == 0:
+        return None
+
+    landmarks = np.asarray(preds[0], dtype=np.float32)
+    if landmarks.shape[0] < 68:
+        return None
+    landmarks[:, 0] += float(x1)
+    landmarks[:, 1] += float(y1)
+    return landmarks
+
+
+def _polygon_mask(shape: Tuple[int, int], points: np.ndarray, blur: int = 9) -> np.ndarray:
+    mask = np.zeros(shape, dtype=np.uint8)
+    if points.shape[0] < 3:
+        return mask.astype(np.float32)
+
+    hull = cv2.convexHull(points.astype(np.int32))
+    cv2.fillConvexPoly(mask, hull, 255)
+
+    if blur > 1:
+        blur = blur + 1 if blur % 2 == 0 else blur
+        mask = cv2.GaussianBlur(mask, (blur, blur), 0)
+    return mask.astype(np.float32) / 255.0
+
+
+def _landmark_component_masks(
+    landmarks: np.ndarray,
+    bbox: Tuple[int, int, int, int],
+) -> Dict[str, np.ndarray]:
+    x1, y1, x2, y2 = bbox
+    roi_h = max(1, y2 - y1)
+    roi_w = max(1, x2 - x1)
+
+    pts = landmarks.copy()
+    pts[:, 0] -= float(x1)
+    pts[:, 1] -= float(y1)
+
+    left_eye = _polygon_mask((roi_h, roi_w), pts[36:42], blur=11)
+    right_eye = _polygon_mask((roi_h, roi_w), pts[42:48], blur=11)
+    nose = _polygon_mask((roi_h, roi_w), pts[27:36], blur=15)
+    mouth = _polygon_mask((roi_h, roi_w), pts[48:60], blur=15)
+
+    eyes = np.maximum(left_eye, right_eye)
+    return {
+        "eyes": eyes.astype(np.float32),
+        "nose": nose.astype(np.float32),
+        "mouth": mouth.astype(np.float32),
+    }
+
+
+def _distance_weight(mask: np.ndarray) -> np.ndarray:
+    mask_u8 = (np.clip(mask, 0.0, 1.0) * 255).astype(np.uint8)
+    if mask_u8.max() == 0:
+        return mask.astype(np.float32)
+    dist = cv2.distanceTransform(mask_u8, cv2.DIST_L2, 3)
+    return _normalize_heatmap_map(dist)
+
+
+def _ellipse_mask(
+    shape: Tuple[int, int],
+    center: Tuple[int, int],
+    axes: Tuple[int, int],
+    angle: float = 0.0,
+    blur: int = 11,
+) -> np.ndarray:
+    mask = np.zeros(shape, dtype=np.uint8)
+    cv2.ellipse(mask, center, axes, angle, 0, 360, 255, -1)
+    if blur > 1:
+        blur = blur + 1 if blur % 2 == 0 else blur
+        mask = cv2.GaussianBlur(mask, (blur, blur), 0)
+    return mask.astype(np.float32) / 255.0
+
+
+def _find_window_peak(
+    heatmap: np.ndarray,
+    x_range: Tuple[float, float],
+    y_range: Tuple[float, float],
+) -> Tuple[int, int]:
+    h, w = heatmap.shape[:2]
+    x1 = max(0, min(w - 1, int(round(x_range[0] * (w - 1)))))
+    x2 = max(x1 + 1, min(w, int(round(x_range[1] * (w - 1))) + 1))
+    y1 = max(0, min(h - 1, int(round(y_range[0] * (h - 1)))))
+    y2 = max(y1 + 1, min(h, int(round(y_range[1] * (h - 1))) + 1))
+    window = heatmap[y1:y2, x1:x2]
+    if window.size == 0:
+        return w // 2, h // 2
+    peak_idx = int(window.argmax())
+    peak_y, peak_x = np.unravel_index(peak_idx, window.shape)
+    return x1 + int(peak_x), y1 + int(peak_y)
+
+
+def _heuristic_component_masks(heatmap: np.ndarray, bbox: Tuple[int, int, int, int]) -> Dict[str, np.ndarray]:
+    x1, y1, x2, y2 = bbox
+    roi_h = max(1, y2 - y1)
+    roi_w = max(1, x2 - x1)
+    coarse = cv2.resize(heatmap, (roi_w, roi_h), interpolation=cv2.INTER_CUBIC).astype(np.float32)
+    coarse = _normalize_heatmap_map(coarse)
+
+    left_eye_center = _find_window_peak(coarse, (0.18, 0.46), (0.18, 0.46))
+    right_eye_center = _find_window_peak(coarse, (0.54, 0.82), (0.18, 0.46))
+    nose_center = _find_window_peak(coarse, (0.36, 0.64), (0.34, 0.70))
+    mouth_center = _find_window_peak(coarse, (0.28, 0.72), (0.60, 0.90))
+
+    left_eye = _ellipse_mask(
+        (roi_h, roi_w),
+        left_eye_center,
+        (max(6, int(roi_w * 0.08)), max(4, int(roi_h * 0.045))),
+        blur=13,
+    )
+    right_eye = _ellipse_mask(
+        (roi_h, roi_w),
+        right_eye_center,
+        (max(6, int(roi_w * 0.08)), max(4, int(roi_h * 0.045))),
+        blur=13,
+    )
+    nose = _ellipse_mask(
+        (roi_h, roi_w),
+        nose_center,
+        (max(6, int(roi_w * 0.055)), max(9, int(roi_h * 0.11))),
+        blur=17,
+    )
+    mouth = _ellipse_mask(
+        (roi_h, roi_w),
+        mouth_center,
+        (max(10, int(roi_w * 0.13)), max(5, int(roi_h * 0.055))),
+        blur=17,
+    )
+
+    return {
+        "eyes": np.maximum(left_eye, right_eye).astype(np.float32),
+        "nose": nose.astype(np.float32),
+        "mouth": mouth.astype(np.float32),
+    }
+
+
+def _refine_heatmap_with_landmarks(
+    image_bgr: np.ndarray,
+    heatmap: np.ndarray,
+    bbox: Optional[Tuple[int, int, int, int]],
+) -> np.ndarray:
+    if bbox is None:
+        return heatmap
+
+    landmarks = _extract_landmarks_in_bbox(image_bgr, bbox)
+
+    x1, y1, x2, y2 = bbox
+    roi_h = max(1, y2 - y1)
+    roi_w = max(1, x2 - x1)
+
+    coarse = cv2.resize(heatmap, (roi_w, roi_h), interpolation=cv2.INTER_CUBIC).astype(np.float32)
+    coarse = _normalize_heatmap_map(coarse)
+    masks = (
+        _landmark_component_masks(landmarks, bbox)
+        if landmarks is not None else
+        _heuristic_component_masks(heatmap, bbox)
+    )
+
+    refined = np.zeros_like(coarse, dtype=np.float32)
+    component_weights = {
+        "eyes": 1.50,
+        "nose": 1.35,
+        "mouth": 0.85,
+    }
+
+    for name, mask in masks.items():
+        support = mask > 0.08
+        if not np.any(support):
+            continue
+
+        coarse_support = coarse[support]
+        activation = float(np.percentile(coarse_support, 85))
+        shape_prior = _distance_weight(mask)
+        component_map = (0.40 * coarse + 0.60 * shape_prior) * mask
+        component_map = _normalize_heatmap_map(component_map)
+        refined += component_weights.get(name, 1.0) * activation * component_map
+
+    if refined.max() <= 1e-6:
+        return heatmap
+
+    refined = _sparsify_heatmap(refined, percentile=50.0, gamma=0.78)
+    return refined
 
 
 def _extract_component_guided_heatmap(
@@ -398,9 +629,10 @@ def build_explainability_panel(
     gap: int = 10,
 ) -> np.ndarray:
     bbox = bbox or detect_primary_face_bbox(image_bgr)
+    refined_heatmap = _refine_heatmap_with_landmarks(image_bgr, heatmap, bbox)
     preview = draw_face_bbox(image_bgr, bbox)
-    overlay = overlay_heatmap_on_bbox(image_bgr, heatmap, bbox=bbox)
-    strip = render_heatmap_strip(heatmap, repeat=repeat, gap=6)
+    overlay = overlay_heatmap_on_bbox(image_bgr, refined_heatmap, bbox=bbox)
+    strip = render_heatmap_strip(refined_heatmap, repeat=repeat, gap=6)
 
     target_h = max(image_bgr.shape[0], overlay.shape[0])
     target_w = max(image_bgr.shape[1], overlay.shape[1])
@@ -464,3 +696,4 @@ def save_curve(probabilities: List[float], out_path: Path) -> None:
         cv2.polylines(canvas, [np.array(pts, dtype=np.int32)], isClosed=False, color=(0, 0, 255), thickness=2)
     cv2.putText(canvas, "Frame-level Fake Probability", (50, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (40, 40, 40), 1)
     cv2.imwrite(str(out_path), canvas)
+
