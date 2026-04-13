@@ -21,7 +21,126 @@ def _load_face_detector() -> Optional[cv2.CascadeClassifier]:
     return detector
 
 
-def extract_spatial_heatmap(
+def _normalize_heatmap_map(heatmap: np.ndarray) -> np.ndarray:
+    heatmap = np.asarray(heatmap, dtype=np.float32)
+    min_val = float(heatmap.min())
+    max_val = float(heatmap.max())
+    if max_val - min_val <= 1e-6:
+        return np.zeros_like(heatmap, dtype=np.float32)
+    return np.clip((heatmap - min_val) / (max_val - min_val + 1e-6), 0.0, 1.0)
+
+
+def _sparsify_heatmap(heatmap: np.ndarray, percentile: float = 72.0, gamma: float = 0.85) -> np.ndarray:
+    heatmap = _normalize_heatmap_map(heatmap)
+    threshold = float(np.percentile(heatmap, percentile))
+    heatmap = np.clip(heatmap - threshold, 0.0, None)
+    heatmap = _normalize_heatmap_map(heatmap)
+    return np.power(heatmap, gamma).astype(np.float32)
+
+
+def _infer_face_part_names(part_count: int) -> Tuple[str, ...]:
+    if part_count == 4:
+        return ("lips", "skin", "eyes", "nose")
+    if part_count == 3:
+        return ("lips", "eyes", "nose")
+    if part_count == 2:
+        return ("eyes", "nose")
+    return tuple(f"part_{idx}" for idx in range(part_count))
+
+
+def _build_face_component_priors(grid_size: int) -> Dict[str, np.ndarray]:
+    yy, xx = np.mgrid[0:grid_size, 0:grid_size].astype(np.float32)
+    yy = yy / max(grid_size - 1, 1)
+    xx = xx / max(grid_size - 1, 1)
+
+    def gaussian(cx: float, cy: float, sx: float, sy: float) -> np.ndarray:
+        return np.exp(-(((xx - cx) ** 2) / (2.0 * sx * sx) + ((yy - cy) ** 2) / (2.0 * sy * sy)))
+
+    left_eye = gaussian(0.33, 0.36, 0.10, 0.08)
+    right_eye = gaussian(0.67, 0.36, 0.10, 0.08)
+    nose = gaussian(0.50, 0.55, 0.10, 0.14)
+    mouth = gaussian(0.50, 0.76, 0.16, 0.10)
+
+    return {
+        "eyes": np.maximum(left_eye, right_eye).astype(np.float32),
+        "nose": nose.astype(np.float32),
+        "mouth": mouth.astype(np.float32),
+    }
+
+
+def _extract_component_guided_heatmap(
+    layer_attrs: Optional[List[Dict[str, Any]]],
+    batch_index: int = 0,
+    last_n_layers: int = 4,
+    time_index: int = -1,
+) -> Optional[np.ndarray]:
+    if not layer_attrs:
+        return None
+
+    maps: List[np.ndarray] = []
+    target_layers = layer_attrs[-max(last_n_layers, 1) :]
+
+    for attrs in target_layers:
+        if not isinstance(attrs, dict):
+            continue
+        if "s_q" not in attrs or "k" not in attrs:
+            continue
+
+        s_q = attrs["s_q"]
+        k = attrs["k"]
+
+        if s_q is None or k is None:
+            continue
+        if s_q.ndim != 3 or k.ndim != 5:
+            continue
+
+        patch_k = k[:, :, 1:, :, :].flatten(-2).contiguous()
+        syno_q = s_q.contiguous()
+
+        syno_q = syno_q / (syno_q.norm(dim=-1, keepdim=True) + 1e-6)
+        patch_k = patch_k / (patch_k.norm(dim=-1, keepdim=True) + 1e-6)
+
+        score = torch.einsum("bqw,btpw->btqp", syno_q, patch_k)
+        score = (score * 80.0).softmax(dim=-1)
+
+        if batch_index < 0 or batch_index >= score.shape[0]:
+            continue
+
+        t_idx = time_index if time_index >= 0 else score.shape[1] + time_index
+        t_idx = max(0, min(score.shape[1] - 1, t_idx))
+
+        component_scores = score[batch_index, t_idx].detach().cpu().numpy()
+        patch_num = component_scores.shape[-1]
+        patch_grid = int(round(np.sqrt(patch_num)))
+        if patch_grid * patch_grid != patch_num:
+            continue
+
+        component_maps = component_scores.reshape(component_scores.shape[0], patch_grid, patch_grid)
+        part_names = _infer_face_part_names(component_maps.shape[0])
+        priors = _build_face_component_priors(patch_grid)
+
+        fused = np.zeros((patch_grid, patch_grid), dtype=np.float32)
+        for idx, part_name in enumerate(part_names):
+            cur_map = component_maps[idx].astype(np.float32)
+            if part_name == "eyes":
+                fused += 1.45 * (cur_map * priors["eyes"])
+            elif part_name == "nose":
+                fused += 1.25 * (cur_map * priors["nose"])
+            elif part_name == "lips":
+                fused += 0.30 * (cur_map * priors["mouth"])
+
+        if fused.max() <= 1e-6:
+            continue
+
+        maps.append(_sparsify_heatmap(fused))
+
+    if not maps:
+        return None
+
+    return _normalize_heatmap_map(np.stack(maps, axis=0).mean(axis=0))
+
+
+def _extract_cls_patch_heatmap(
     layer_attrs: Optional[List[Dict[str, Any]]],
     batch_index: int = 0,
     last_n_layers: int = 4,
@@ -69,14 +188,38 @@ def extract_spatial_heatmap(
             continue
 
         map_2d = score_1d.reshape(patch_grid, patch_grid)
-        map_2d = (map_2d - map_2d.min()) / (map_2d.max() - map_2d.min() + 1e-6)
-        maps.append(map_2d)
+        maps.append(_normalize_heatmap_map(map_2d))
 
     if not maps:
         return None
 
-    heatmap = np.stack(maps, axis=0).mean(axis=0)
-    return np.clip(heatmap, 0.0, 1.0)
+    return _normalize_heatmap_map(np.stack(maps, axis=0).mean(axis=0))
+
+
+def extract_spatial_heatmap(
+    layer_attrs: Optional[List[Dict[str, Any]]],
+    batch_index: int = 0,
+    last_n_layers: int = 4,
+    time_index: int = -1,
+) -> Optional[np.ndarray]:
+    component_heatmap = _extract_component_guided_heatmap(
+        layer_attrs=layer_attrs,
+        batch_index=batch_index,
+        last_n_layers=last_n_layers,
+        time_index=time_index,
+    )
+    if component_heatmap is not None:
+        return component_heatmap
+
+    cls_heatmap = _extract_cls_patch_heatmap(
+        layer_attrs=layer_attrs,
+        batch_index=batch_index,
+        last_n_layers=last_n_layers,
+        time_index=time_index,
+    )
+    if cls_heatmap is None:
+        return None
+    return _sparsify_heatmap(cls_heatmap, percentile=68.0, gamma=0.92)
 
 
 def render_heatmap_strip(heatmap: np.ndarray, repeat: int = 5, gap: int = 6) -> np.ndarray:
@@ -210,7 +353,13 @@ def overlay_heatmap_full(image_bgr: np.ndarray, heatmap: np.ndarray, alpha: floa
     hm = cv2.resize(heatmap, (w, h), interpolation=cv2.INTER_NEAREST)
     hm_u8 = (np.clip(hm, 0.0, 1.0) * 255).astype(np.uint8)
     hm_color = cv2.applyColorMap(hm_u8, cv2.COLORMAP_JET)
-    return cv2.addWeighted(image_bgr, 1.0 - alpha, hm_color, alpha, 0.0)
+    blended = cv2.addWeighted(image_bgr, 1.0 - alpha, hm_color, alpha, 0.0)
+    saliency = np.clip((hm - 0.35) / 0.65, 0.0, 1.0)[..., None]
+    out = (
+        image_bgr.astype(np.float32) * (1.0 - saliency) +
+        blended.astype(np.float32) * saliency
+    ).astype(np.uint8)
+    return out
 
 
 def overlay_heatmap_on_bbox(
@@ -231,7 +380,12 @@ def overlay_heatmap_on_bbox(
     hm_u8 = (np.clip(hm, 0.0, 1.0) * 255).astype(np.uint8)
     hm_color = cv2.applyColorMap(hm_u8, cv2.COLORMAP_JET)
     roi = out[y1:y2, x1:x2]
-    out[y1:y2, x1:x2] = cv2.addWeighted(roi, 1.0 - alpha, hm_color, alpha, 0.0)
+    blended = cv2.addWeighted(roi, 1.0 - alpha, hm_color, alpha, 0.0)
+    saliency = np.clip((hm - 0.30) / 0.70, 0.0, 1.0)[..., None]
+    out[y1:y2, x1:x2] = (
+        roi.astype(np.float32) * (1.0 - saliency) +
+        blended.astype(np.float32) * saliency
+    ).astype(np.uint8)
     cv2.rectangle(out, (x1, y1), (x2, y2), (0, 210, 255), 2)
     return out
 
@@ -258,7 +412,7 @@ def build_explainability_panel(
     top[:, target_w + gap :] = right
 
     cv2.putText(top, "Detected Face ROI", (12, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (32, 32, 32), 2)
-    cv2.putText(top, "ROI Attention Overlay", (target_w + gap + 12, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (32, 32, 32), 2)
+    cv2.putText(top, "Component-Focused Overlay", (target_w + gap + 12, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (32, 32, 32), 2)
 
     strip_w = top.shape[1]
     strip_h = max(120, int(strip.shape[0] * (strip_w / max(strip.shape[1], 1))))
@@ -266,7 +420,7 @@ def build_explainability_panel(
 
     title_h = 42
     bottom = np.full((strip_h + title_h, strip_w, 3), 255, dtype=np.uint8)
-    cv2.putText(bottom, "Patch Attention Strip", (12, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (32, 32, 32), 2)
+    cv2.putText(bottom, "Facial Component Heatmap", (12, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (32, 32, 32), 2)
     bottom[title_h:, :] = strip_resized
 
     panel = np.full((top.shape[0] + gap + bottom.shape[0], strip_w, 3), 248, dtype=np.uint8)
