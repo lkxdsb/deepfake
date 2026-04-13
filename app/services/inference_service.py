@@ -259,6 +259,7 @@ class InferenceService:
         preview_path = keyframe_path_by_clip.get(best_clip_index, keyframes_saved[0] if keyframes_saved else None)
         best_attention_heatmap: Optional[np.ndarray] = None
         best_attention_bbox: Optional[Tuple[int, int, int, int]] = None
+        best_attention_frame_bgr: Optional[np.ndarray] = None
         if 0 <= best_clip_index < len(clip_heatmaps):
             best_attention_heatmap = clip_heatmaps[best_clip_index]
             best_start_offset = clip_offsets[best_clip_index] if best_clip_index < len(clip_offsets) else best_clip_index * clip_step
@@ -267,6 +268,7 @@ class InferenceService:
             else:
                 best_frame_idx = min(max_idx + best_start_offset, total_frames - 1)
             best_attention_bbox = face_bboxes[best_frame_idx]
+            best_attention_frame_bgr = chw_rgb_to_bgr(frames[best_frame_idx])
 
         return {
             "label": label,
@@ -281,6 +283,7 @@ class InferenceService:
             "total_frames": total_frames,
             "attention_heatmap": best_attention_heatmap,
             "attention_bbox": best_attention_bbox,
+            "attention_frame_bgr": best_attention_frame_bgr,
             "best_clip_index": best_clip_index,
             "clip_step": clip_step,
             "batch_size": batch_size,

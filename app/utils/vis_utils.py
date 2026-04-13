@@ -76,15 +76,29 @@ def _build_face_component_priors(grid_size: int) -> Dict[str, np.ndarray]:
     def gaussian(cx: float, cy: float, sx: float, sy: float) -> np.ndarray:
         return np.exp(-(((xx - cx) ** 2) / (2.0 * sx * sx) + ((yy - cy) ** 2) / (2.0 * sy * sy)))
 
-    left_eye = gaussian(0.33, 0.36, 0.10, 0.08)
-    right_eye = gaussian(0.67, 0.36, 0.10, 0.08)
-    nose = gaussian(0.50, 0.55, 0.10, 0.14)
-    mouth = gaussian(0.50, 0.76, 0.16, 0.10)
+    left_eye = (
+        0.70 * gaussian(0.31, 0.37, 0.12, 0.085) +
+        0.60 * gaussian(0.35, 0.37, 0.065, 0.050)
+    )
+    right_eye = (
+        0.70 * gaussian(0.69, 0.37, 0.12, 0.085) +
+        0.60 * gaussian(0.65, 0.37, 0.065, 0.050)
+    )
+    nose = (
+        0.60 * gaussian(0.50, 0.54, 0.085, 0.16) +
+        0.85 * gaussian(0.50, 0.64, 0.065, 0.075)
+    )
+    mouth = (
+        0.65 * gaussian(0.50, 0.77, 0.18, 0.085) +
+        0.95 * gaussian(0.50, 0.79, 0.13, 0.055)
+    )
+    face = gaussian(0.50, 0.56, 0.34, 0.40)
 
     return {
-        "eyes": np.maximum(left_eye, right_eye).astype(np.float32),
-        "nose": nose.astype(np.float32),
-        "mouth": mouth.astype(np.float32),
+        "eyes": _normalize_heatmap_map(np.maximum(left_eye, right_eye)).astype(np.float32),
+        "nose": _normalize_heatmap_map(nose).astype(np.float32),
+        "mouth": _normalize_heatmap_map(mouth).astype(np.float32),
+        "face": _normalize_heatmap_map(face).astype(np.float32),
     }
 
 
@@ -141,6 +155,25 @@ def _polygon_mask(shape: Tuple[int, int], points: np.ndarray, blur: int = 9) -> 
     return mask.astype(np.float32) / 255.0
 
 
+def _soft_expand_mask(
+    mask: np.ndarray,
+    dilate_radius: int = 5,
+    blur: int = 11,
+) -> np.ndarray:
+    if mask.max() <= 1e-6:
+        return mask.astype(np.float32)
+
+    mask_u8 = (np.clip(mask, 0.0, 1.0) * 255).astype(np.uint8)
+    if dilate_radius > 0:
+        kernel_size = dilate_radius * 2 + 1
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+        mask_u8 = cv2.dilate(mask_u8, kernel, iterations=1)
+    if blur > 1:
+        blur = blur + 1 if blur % 2 == 0 else blur
+        mask_u8 = cv2.GaussianBlur(mask_u8, (blur, blur), 0)
+    return mask_u8.astype(np.float32) / 255.0
+
+
 def _landmark_component_masks(
     landmarks: np.ndarray,
     bbox: Tuple[int, int, int, int],
@@ -153,10 +186,10 @@ def _landmark_component_masks(
     pts[:, 0] -= float(x1)
     pts[:, 1] -= float(y1)
 
-    left_eye = _polygon_mask((roi_h, roi_w), pts[36:42], blur=11)
-    right_eye = _polygon_mask((roi_h, roi_w), pts[42:48], blur=11)
-    nose = _polygon_mask((roi_h, roi_w), pts[27:36], blur=15)
-    mouth = _polygon_mask((roi_h, roi_w), pts[48:60], blur=15)
+    left_eye = _soft_expand_mask(_polygon_mask((roi_h, roi_w), pts[36:42], blur=9), dilate_radius=max(3, roi_w // 28), blur=15)
+    right_eye = _soft_expand_mask(_polygon_mask((roi_h, roi_w), pts[42:48], blur=9), dilate_radius=max(3, roi_w // 28), blur=15)
+    nose = _soft_expand_mask(_polygon_mask((roi_h, roi_w), pts[27:36], blur=11), dilate_radius=max(4, roi_w // 24), blur=19)
+    mouth = _soft_expand_mask(_polygon_mask((roi_h, roi_w), pts[48:60], blur=11), dilate_radius=max(5, roi_w // 20), blur=21)
 
     eyes = np.maximum(left_eye, right_eye)
     return {
@@ -219,30 +252,30 @@ def _heuristic_component_masks(heatmap: np.ndarray, bbox: Tuple[int, int, int, i
     nose_center = _find_window_peak(coarse, (0.36, 0.64), (0.34, 0.70))
     mouth_center = _find_window_peak(coarse, (0.28, 0.72), (0.60, 0.90))
 
-    left_eye = _ellipse_mask(
+    left_eye = _soft_expand_mask(_ellipse_mask(
         (roi_h, roi_w),
         left_eye_center,
-        (max(6, int(roi_w * 0.08)), max(4, int(roi_h * 0.045))),
+        (max(7, int(roi_w * 0.10)), max(5, int(roi_h * 0.055))),
         blur=13,
-    )
-    right_eye = _ellipse_mask(
+    ), dilate_radius=max(3, roi_w // 30), blur=17)
+    right_eye = _soft_expand_mask(_ellipse_mask(
         (roi_h, roi_w),
         right_eye_center,
-        (max(6, int(roi_w * 0.08)), max(4, int(roi_h * 0.045))),
+        (max(7, int(roi_w * 0.10)), max(5, int(roi_h * 0.055))),
         blur=13,
-    )
-    nose = _ellipse_mask(
+    ), dilate_radius=max(3, roi_w // 30), blur=17)
+    nose = _soft_expand_mask(_ellipse_mask(
         (roi_h, roi_w),
         nose_center,
-        (max(6, int(roi_w * 0.055)), max(9, int(roi_h * 0.11))),
-        blur=17,
-    )
-    mouth = _ellipse_mask(
+        (max(8, int(roi_w * 0.075)), max(11, int(roi_h * 0.14))),
+        blur=19,
+    ), dilate_radius=max(4, roi_w // 26), blur=21)
+    mouth = _soft_expand_mask(_ellipse_mask(
         (roi_h, roi_w),
         mouth_center,
-        (max(10, int(roi_w * 0.13)), max(5, int(roi_h * 0.055))),
-        blur=17,
-    )
+        (max(13, int(roi_w * 0.18)), max(6, int(roi_h * 0.075))),
+        blur=19,
+    ), dilate_radius=max(4, roi_w // 24), blur=23)
 
     return {
         "eyes": np.maximum(left_eye, right_eye).astype(np.float32),
@@ -273,30 +306,38 @@ def _refine_heatmap_with_landmarks(
         _heuristic_component_masks(heatmap, bbox)
     )
 
-    refined = np.zeros_like(coarse, dtype=np.float32)
+    face_support = _ellipse_mask(
+        (roi_h, roi_w),
+        (roi_w // 2, int(round(roi_h * 0.56))),
+        (max(roi_w // 3, 1), max(int(round(roi_h * 0.42)), 1)),
+        blur=31,
+    )
+    refined = 0.16 * (0.35 + 0.65 * coarse) * face_support
     component_weights = {
-        "eyes": 1.50,
-        "nose": 1.35,
-        "mouth": 0.85,
+        "eyes": 1.55,
+        "nose": 1.45,
+        "mouth": 1.90,
     }
 
     for name, mask in masks.items():
-        support = mask > 0.08
+        support = mask > 0.05
         if not np.any(support):
             continue
 
         coarse_support = coarse[support]
-        activation = float(np.percentile(coarse_support, 85))
-        shape_prior = _distance_weight(mask)
-        component_map = (0.40 * coarse + 0.60 * shape_prior) * mask
+        activation = float(np.percentile(coarse_support, 78))
+        shape_prior = np.power(_distance_weight(mask), 0.72)
+        component_map = (0.18 * coarse + 0.82 * shape_prior) * mask
         component_map = _normalize_heatmap_map(component_map)
-        refined += component_weights.get(name, 1.0) * activation * component_map
+        refined += component_weights.get(name, 1.0) * (0.35 + 0.65 * activation) * component_map
 
     if refined.max() <= 1e-6:
         return heatmap
 
-    refined = _sparsify_heatmap(refined, percentile=50.0, gamma=0.78)
-    return refined
+    refined = _normalize_heatmap_map(refined)
+    refined = np.power(refined, 0.62)
+    refined = _normalize_heatmap_map(0.12 * coarse * face_support + 0.88 * refined)
+    return refined.astype(np.float32)
 
 
 def _extract_component_guided_heatmap(
@@ -354,16 +395,21 @@ def _extract_component_guided_heatmap(
         for idx, part_name in enumerate(part_names):
             cur_map = component_maps[idx].astype(np.float32)
             if part_name == "eyes":
-                fused += 1.45 * (cur_map * priors["eyes"])
+                fused += 1.30 * (cur_map * priors["eyes"])
             elif part_name == "nose":
-                fused += 1.25 * (cur_map * priors["nose"])
+                fused += 1.45 * (cur_map * priors["nose"])
             elif part_name == "lips":
-                fused += 0.30 * (cur_map * priors["mouth"])
+                fused += 1.85 * (cur_map * priors["mouth"])
+            elif part_name == "skin":
+                fused += 0.45 * ((0.60 * cur_map) + 0.40 * float(cur_map.mean())) * priors["face"]
 
         if fused.max() <= 1e-6:
             continue
 
-        maps.append(_sparsify_heatmap(fused))
+        fused = _normalize_heatmap_map(fused)
+        fused = np.power(fused, 0.68)
+        fused += 0.10 * priors["face"] * float(np.mean(fused))
+        maps.append(_normalize_heatmap_map(fused))
 
     if not maps:
         return None

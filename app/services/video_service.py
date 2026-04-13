@@ -42,8 +42,11 @@ class VideoService:
         heatmap_path: Optional[Path] = None
         model_heatmap = infer.get("attention_heatmap")
         preview_path = infer.get("preview_path")
-        if model_heatmap is not None and preview_path is not None and Path(preview_path).exists():
-            preview_img = cv2.imread(str(preview_path))
+        clean_attention_frame = infer.get("attention_frame_bgr")
+        if model_heatmap is not None:
+            preview_img = clean_attention_frame
+            if preview_img is None and preview_path is not None and Path(preview_path).exists():
+                preview_img = cv2.imread(str(preview_path))
             if preview_img is not None:
                 panel = build_explainability_panel(
                     preview_img,
