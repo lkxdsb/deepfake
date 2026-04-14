@@ -1,5 +1,7 @@
 ﻿import logging
 import os
+import shutil
+import subprocess
 import threading
 import time
 from pathlib import Path
@@ -149,11 +151,11 @@ class InferenceService:
         height: int,
         fps: float,
     ) -> Tuple[Optional[cv2.VideoWriter], Optional[Path]]:
-        base_path = self.settings.outputs_previews_dir / f"{task_id}_boxed_preview"
+        base_path = self.settings.outputs_previews_dir / f"{task_id}_boxed_preview_raw"
         candidates = [
-            ("avc1", ".mp4"),
-            ("mp4v", ".mp4"),
             ("MJPG", ".avi"),
+            ("XVID", ".avi"),
+            ("mp4v", ".mp4"),
         ]
 
         for codec, suffix in candidates:
@@ -171,6 +173,44 @@ class InferenceService:
             out_path.unlink(missing_ok=True)
 
         return None, None
+
+    def _transcode_preview_for_web(self, task_id: str, source_path: Path) -> Optional[Path]:
+        ffmpeg_path = shutil.which("ffmpeg")
+        if ffmpeg_path is None:
+            logging.warning("ffmpeg not found; skipping web preview video for task %s", task_id)
+            return None
+
+        final_path = self.settings.outputs_previews_dir / f"{task_id}_boxed_preview.mp4"
+        final_path.parent.mkdir(parents=True, exist_ok=True)
+        final_path.unlink(missing_ok=True)
+
+        cmd = [
+            ffmpeg_path,
+            "-y",
+            "-i",
+            str(source_path),
+            "-an",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            str(final_path),
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        if result.returncode != 0 or not final_path.exists() or final_path.stat().st_size == 0:
+            stderr_tail = (result.stderr or "").strip().splitlines()[-5:]
+            logging.warning(
+                "ffmpeg preview transcode failed for task %s: %s",
+                task_id,
+                " | ".join(stderr_tail) if stderr_tail else f"returncode={result.returncode}",
+            )
+            final_path.unlink(missing_ok=True)
+            return None
+
+        source_path.unlink(missing_ok=True)
+        return final_path
 
     def _render_boxed_video_preview(
         self,
@@ -284,8 +324,12 @@ class InferenceService:
         finally:
             writer.release()
 
+        final_path = self._transcode_preview_for_web(task_id, out_path)
+        if final_path is None:
+            return None, None
+
         preview_duration = round((end_frame - start_frame) / effective_fps, 3)
-        return out_path, preview_duration
+        return final_path, preview_duration
 
     @torch.inference_mode()
     def predict_image(self, image_path: Path) -> Dict[str, Any]:
