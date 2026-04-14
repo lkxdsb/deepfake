@@ -15,6 +15,6 @@ export AUDIO_FAKE_THRESHOLD=0.5
 export AUDIO_SAMPLE_RATE=16000
 
 export VIDEO_CLIP_STEP=4
-export VIDEO_BATCH_SIZE=8
+export VIDEO_BATCH_SIZE=4
 
 exec uvicorn app.main:app --host "$APP_HOST" --port "$APP_PORT"

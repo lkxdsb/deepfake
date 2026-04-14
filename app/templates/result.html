@@ -79,13 +79,19 @@
                 <h3>样本预览</h3>
                 <p>优先展示最适合答辩说明的原始样本内容。</p>
               </div>
-              {% if item.result.preview_url %}
+              {% if item.result.preview_url or item.result.preview_video_url %}
                 {% if item.result.file_type == 'audio' %}
                   <audio controls class="audio-player">
                     <source src="{{ item.result.preview_url }}">
                     你的浏览器不支持音频播放。
                   </audio>
                   <p class="inline-note">音频判定规则：{{ item.result.decision_rule or 'fake_prob >= threshold 判为 fake' }}。</p>
+                {% elif item.result.file_type == 'video' and item.result.preview_video_url %}
+                  <video controls preload="metadata" class="result-media result-media--video"{% if item.result.preview_url %} poster="{{ item.result.preview_url }}"{% endif %}>
+                    <source src="{{ item.result.preview_video_url }}">
+                    Your browser does not support video playback.
+                  </video>
+                  <p class="inline-note">Boxed preview video: about {% if item.result.preview_duration_sec is defined and item.result.preview_duration_sec is not none %}{{ '%.1f'|format(item.result.preview_duration_sec) }}{% else %}10{% endif %} seconds.</p>
                 {% else %}
                   <img class="result-media" src="{{ item.result.preview_url }}" alt="preview">
                 {% endif %}

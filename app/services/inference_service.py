@@ -117,6 +117,176 @@ class InferenceService:
             return raw_bboxes
         return smooth_face_bboxes(raw_bboxes, image_shape=image_shape)
 
+    def _build_dense_frame_scores(
+        self,
+        total_frames: int,
+        clip_offsets: List[int],
+        probs: List[float],
+    ) -> np.ndarray:
+        frame_scores = np.zeros((max(total_frames, 1),), dtype=np.float32)
+        if total_frames <= 0 or not probs:
+            return frame_scores[:total_frames]
+
+        safe_offsets = [
+            max(0, min(int(offset), total_frames - 1))
+            for offset in clip_offsets[: len(probs)]
+        ]
+        if not safe_offsets:
+            frame_scores[:total_frames] = float(np.mean(probs))
+            return frame_scores[:total_frames]
+
+        frame_scores[: safe_offsets[0] + 1] = float(probs[0])
+        for idx, start in enumerate(safe_offsets):
+            end = safe_offsets[idx + 1] if idx + 1 < len(safe_offsets) else total_frames
+            end = max(start + 1, min(end, total_frames))
+            frame_scores[start:end] = float(probs[idx])
+        return frame_scores[:total_frames]
+
+    def _open_preview_writer(
+        self,
+        task_id: str,
+        width: int,
+        height: int,
+        fps: float,
+    ) -> Tuple[Optional[cv2.VideoWriter], Optional[Path]]:
+        base_path = self.settings.outputs_previews_dir / f"{task_id}_boxed_preview"
+        candidates = [
+            ("avc1", ".mp4"),
+            ("mp4v", ".mp4"),
+            ("MJPG", ".avi"),
+        ]
+
+        for codec, suffix in candidates:
+            out_path = base_path.with_suffix(suffix)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            writer = cv2.VideoWriter(
+                str(out_path),
+                cv2.VideoWriter_fourcc(*codec),
+                fps,
+                (width, height),
+            )
+            if writer.isOpened():
+                return writer, out_path
+            writer.release()
+            out_path.unlink(missing_ok=True)
+
+        return None, None
+
+    def _render_boxed_video_preview(
+        self,
+        task_id: str,
+        frames: List[torch.Tensor],
+        face_bboxes: List[Optional[Tuple[int, int, int, int]]],
+        fps: float,
+        probs: List[float],
+        clip_offsets: List[int],
+        best_clip_index: int,
+    ) -> Tuple[Optional[Path], Optional[float]]:
+        total_frames = len(frames)
+        if total_frames == 0:
+            return None, None
+
+        first_frame = chw_rgb_to_bgr(frames[0])
+        height, width = first_frame.shape[:2]
+        effective_fps = fps if fps > 0 else 25.0
+        preview_frame_budget = max(1, int(round(self.settings.video_preview_seconds * effective_fps)))
+
+        anchor_offset = 0
+        if probs and 0 <= best_clip_index < len(clip_offsets):
+            anchor_offset = int(clip_offsets[best_clip_index])
+
+        center_frame = max(0, min(anchor_offset, total_frames - 1))
+        if total_frames <= preview_frame_budget:
+            start_frame = 0
+            end_frame = total_frames
+        else:
+            half_window = preview_frame_budget // 2
+            start_frame = max(0, center_frame - half_window)
+            end_frame = start_frame + preview_frame_budget
+            if end_frame > total_frames:
+                end_frame = total_frames
+                start_frame = max(0, end_frame - preview_frame_budget)
+
+        writer, out_path = self._open_preview_writer(task_id, width, height, effective_fps)
+        if writer is None or out_path is None:
+            logging.warning("Unable to open preview writer for task %s", task_id)
+            return None, None
+
+        frame_scores = self._build_dense_frame_scores(total_frames, clip_offsets, probs)
+
+        try:
+            for frame_idx in range(start_frame, end_frame):
+                frame_bgr = chw_rgb_to_bgr(frames[frame_idx]).copy()
+                frame_score = float(frame_scores[frame_idx]) if frame_idx < len(frame_scores) else 0.0
+                frame_label = "FAKE" if frame_score >= self.settings.score_threshold else "REAL"
+                color = (0, 0, 255) if frame_label == "FAKE" else (0, 180, 0)
+
+                banner_height = 64
+                overlay = frame_bgr.copy()
+                cv2.rectangle(overlay, (0, 0), (width, banner_height), (18, 22, 30), -1)
+                frame_bgr = cv2.addWeighted(overlay, 0.5, frame_bgr, 0.5, 0)
+
+                cv2.putText(
+                    frame_bgr,
+                    f"Boxed preview  p(fake)={frame_score:.3f}",
+                    (16, 26),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.72,
+                    (255, 255, 255),
+                    2,
+                    cv2.LINE_AA,
+                )
+                cv2.putText(
+                    frame_bgr,
+                    f"{frame_label}  frame {frame_idx + 1}/{total_frames}",
+                    (16, 52),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.72,
+                    color,
+                    2,
+                    cv2.LINE_AA,
+                )
+
+                bbox = face_bboxes[frame_idx] if frame_idx < len(face_bboxes) else None
+                if bbox is not None:
+                    x1, y1, x2, y2 = [int(v) for v in bbox]
+                    x1 = max(0, min(x1, width - 1))
+                    x2 = max(0, min(x2, width - 1))
+                    y1 = max(0, min(y1, height - 1))
+                    y2 = max(0, min(y2, height - 1))
+                    if x2 > x1 and y2 > y1:
+                        thickness = max(2, int(round(min(width, height) * 0.004)))
+                        cv2.rectangle(frame_bgr, (x1, y1), (x2, y2), color, thickness)
+                        label_y = max(y1 - 10, banner_height + 24)
+                        cv2.putText(
+                            frame_bgr,
+                            frame_label,
+                            (x1, label_y),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.7,
+                            color,
+                            2,
+                            cv2.LINE_AA,
+                        )
+                else:
+                    cv2.putText(
+                        frame_bgr,
+                        "FACE NOT FOUND",
+                        (16, min(height - 16, banner_height + 30)),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.7,
+                        (255, 209, 102),
+                        2,
+                        cv2.LINE_AA,
+                    )
+
+                writer.write(frame_bgr)
+        finally:
+            writer.release()
+
+        preview_duration = round((end_frame - start_frame) / effective_fps, 3)
+        return out_path, preview_duration
+
     @torch.inference_mode()
     def predict_image(self, image_path: Path) -> Dict[str, Any]:
         self.ensure_model_loaded()
@@ -257,6 +427,15 @@ class InferenceService:
         save_curve(probs, curve_path)
 
         preview_path = keyframe_path_by_clip.get(best_clip_index, keyframes_saved[0] if keyframes_saved else None)
+        preview_video_path, preview_duration_sec = self._render_boxed_video_preview(
+            task_id=task_id,
+            frames=frames,
+            face_bboxes=face_bboxes,
+            fps=fps,
+            probs=probs,
+            clip_offsets=clip_offsets,
+            best_clip_index=best_clip_index,
+        )
         best_attention_heatmap: Optional[np.ndarray] = None
         best_attention_bbox: Optional[Tuple[int, int, int, int]] = None
         best_attention_frame_bgr: Optional[np.ndarray] = None
@@ -279,6 +458,8 @@ class InferenceService:
             "keyframe_paths": keyframes_saved,
             "curve_path": curve_path,
             "preview_path": preview_path,
+            "preview_video_path": preview_video_path,
+            "preview_duration_sec": preview_duration_sec,
             "fps": fps,
             "total_frames": total_frames,
             "attention_heatmap": best_attention_heatmap,

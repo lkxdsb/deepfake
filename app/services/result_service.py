@@ -15,6 +15,7 @@ class ResultService:
         ensure_dir(self.settings.outputs_uploads_dir)
         ensure_dir(self.settings.outputs_heatmaps_dir)
         ensure_dir(self.settings.outputs_frames_dir)
+        ensure_dir(self.settings.outputs_previews_dir)
         ensure_dir(self.settings.outputs_reports_dir)
 
     def save_result_json(self, task_id: str, data: Dict[str, Any]) -> Path:

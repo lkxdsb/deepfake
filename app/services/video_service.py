@@ -37,6 +37,7 @@ class VideoService:
 
         keyframe_urls = [self.result_service.to_url(p) for p in infer["keyframe_paths"] if p is not None]
         preview_url = self.result_service.to_url(infer.get("preview_path"))
+        preview_video_url = self.result_service.to_url(infer.get("preview_video_path"))
         curve_url = self.result_service.to_url(infer.get("curve_path"))
 
         heatmap_path: Optional[Path] = None
@@ -67,6 +68,8 @@ class VideoService:
             "inference_time": infer["inference_time"],
             "model_name": infer["model_name"],
             "preview_url": preview_url,
+            "preview_video_url": preview_video_url,
+            "preview_duration_sec": infer.get("preview_duration_sec"),
             "heatmap_url": self.result_service.to_url(heatmap_path),
             "curve_url": curve_url,
             "keyframes": keyframe_urls,
@@ -91,7 +94,7 @@ class VideoService:
                 "score": infer["score"],
                 "source_path": str(video_path.resolve()),
                 "result_json_path": str(result_json_path.resolve()),
-                "preview_path": str((infer.get("preview_path") or video_path).resolve()),
+                "preview_path": str((infer.get("preview_video_path") or infer.get("preview_path") or video_path).resolve()),
                 "created_at": datetime.now().isoformat(timespec="seconds"),
                 "model_version": infer["model_name"],
                 "inference_time": infer["inference_time"],

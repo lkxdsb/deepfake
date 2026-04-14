@@ -26,6 +26,7 @@ class Settings:
     num_frames: int
     video_stride: float
     keyframe_count: int
+    video_preview_seconds: float
     max_image_mb: int
     max_video_mb: int
     max_audio_mb: int
@@ -54,6 +55,10 @@ class Settings:
     @property
     def outputs_frames_dir(self) -> Path:
         return self.output_root / "frames"
+
+    @property
+    def outputs_previews_dir(self) -> Path:
+        return self.output_root / "previews"
 
     @property
     def outputs_reports_dir(self) -> Path:
@@ -99,6 +104,7 @@ def load_settings() -> Settings:
         num_frames=int(os.getenv("NUM_FRAMES", "10")),
         video_stride=float(os.getenv("VIDEO_STRIDE", "0.333")),
         keyframe_count=int(os.getenv("KEYFRAME_COUNT", "3")),
+        video_preview_seconds=float(os.getenv("VIDEO_PREVIEW_SECONDS", "10")),
         max_image_mb=int(os.getenv("MAX_IMAGE_MB", "20")),
         max_video_mb=int(os.getenv("MAX_VIDEO_MB", "500")),
         max_audio_mb=int(os.getenv("MAX_AUDIO_MB", "100")),

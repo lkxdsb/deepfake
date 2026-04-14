@@ -830,6 +830,11 @@ p {
   background: rgba(255, 255, 255, 0.7);
 }
 
+.result-media--video {
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+}
+
 .result-media--thumb {
   aspect-ratio: 1.15 / 1;
   object-fit: cover;

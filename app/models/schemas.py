@@ -18,6 +18,8 @@ class DetectionResult(BaseModel):
     inference_time: float
     model_name: str
     preview_url: Optional[str] = None
+    preview_video_url: Optional[str] = None
+    preview_duration_sec: Optional[float] = None
     heatmap_url: Optional[str] = None
     curve_url: Optional[str] = None
     keyframes: List[str] = Field(default_factory=list)
