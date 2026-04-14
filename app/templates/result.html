@@ -88,7 +88,7 @@
                   <p class="inline-note">音频判定规则：{{ item.result.decision_rule or 'fake_prob >= threshold 判为 fake' }}。</p>
                 {% elif item.result.file_type == 'video' and item.result.preview_video_url %}
                   <video controls preload="metadata" class="result-media result-media--video"{% if item.result.preview_url %} poster="{{ item.result.preview_url }}"{% endif %}>
-                    <source src="{{ item.result.preview_video_url }}">
+                    <source src="{{ item.result.preview_video_url }}" type="video/mp4">
                     Your browser does not support video playback.
                   </video>
                   <p class="inline-note">Boxed preview video: about {% if item.result.preview_duration_sec is defined and item.result.preview_duration_sec is not none %}{{ '%.1f'|format(item.result.preview_duration_sec) }}{% else %}10{% endif %} seconds.</p>
