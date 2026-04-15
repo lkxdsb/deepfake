@@ -301,13 +301,15 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 ### Optional launch scripts
 - Windows: `run_local.ps1`
-- Linux local: `run_local.sh`
+- macOS/Linux local: `run_local.sh`
+- macOS/Linux frontend-only: `run_local_frontend.sh`
 - Linux server: `run_server.sh`
 
 ### Key environment variables
 - `APP_HOST`
 - `APP_PORT`
 - `APP_RELOAD`
+- `FRONTEND_ONLY`
 - `MODEL_CFG_PATH`
 - `MODEL_CKPT_PATH`
 - `OUTPUT_ROOT`

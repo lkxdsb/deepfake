@@ -20,4 +20,5 @@ resources/frame_data/
 *.pt
 outputs/
 *.db
+introduction/
 
