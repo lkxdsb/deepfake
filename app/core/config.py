@@ -144,7 +144,7 @@ def load_settings() -> Settings:
             "https://dashscope.aliyuncs.com/compatible-mode/v1",
         ),
         ai_chat_model=os.getenv("AI_CHAT_MODEL", "qwen3.6-plus"),
-        ai_chat_enable_thinking=_env_bool("AI_CHAT_ENABLE_THINKING", True),
+        ai_chat_enable_thinking=_env_bool("AI_CHAT_ENABLE_THINKING", False),
         ai_chat_temperature=float(os.getenv("AI_CHAT_TEMPERATURE", "0.3")),
         ai_chat_max_history_messages=int(os.getenv("AI_CHAT_MAX_HISTORY_MESSAGES", "6")),
     )

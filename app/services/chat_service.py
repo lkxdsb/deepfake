@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterable, List
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -101,6 +101,53 @@ class ChatService:
         except URLError as ex:
             raise RuntimeError(f"AI service connection failed: {ex.reason}") from ex
 
+    def _stream_completion(self, payload: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
+        if not self.settings.ai_chat_api_key:
+            raise RuntimeError("AI chat API key is not configured")
+
+        endpoint = self.settings.ai_chat_base_url.rstrip("/") + "/chat/completions"
+        request = Request(
+            endpoint,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.settings.ai_chat_api_key}",
+            },
+            method="POST",
+        )
+
+        try:
+            with urlopen(request, timeout=120) as response:
+                buffer: List[str] = []
+                for raw_line in response:
+                    line = raw_line.decode("utf-8", errors="ignore").strip()
+                    if not line:
+                        if not buffer:
+                            continue
+                        data = "\n".join(buffer)
+                        buffer.clear()
+                        if data == "[DONE]":
+                            break
+                        yield json.loads(data)
+                        continue
+                    if line.startswith("data:"):
+                        buffer.append(line[5:].lstrip())
+
+                if buffer:
+                    data = "\n".join(buffer)
+                    if data != "[DONE]":
+                        yield json.loads(data)
+        except HTTPError as ex:
+            detail = ex.read().decode("utf-8", errors="ignore")
+            try:
+                data = json.loads(detail) if detail else {}
+                message = data.get("error", {}).get("message") or data.get("message") or detail
+            except Exception:
+                message = detail or str(ex)
+            raise RuntimeError(f"AI service error: {message}") from ex
+        except URLError as ex:
+            raise RuntimeError(f"AI service connection failed: {ex.reason}") from ex
+
     def ask(self, question: str, history: List[Dict[str, str]]) -> Dict[str, str]:
         prompt = question.strip()
         if not prompt:
@@ -127,3 +174,45 @@ class ChatService:
             "answer": answer,
             "model": response.get("model") or self.settings.ai_chat_model,
         }
+
+    def ask_stream(self, question: str, history: List[Dict[str, str]]) -> Iterable[Dict[str, str]]:
+        prompt = question.strip()
+        if not prompt:
+            raise ValueError("question is required")
+
+        payload = {
+            "model": self.settings.ai_chat_model,
+            "messages": self._build_messages(prompt, history),
+            "temperature": self.settings.ai_chat_temperature,
+            "stream": True,
+            "enable_thinking": self.settings.ai_chat_enable_thinking,
+        }
+
+        answer_parts: List[str] = []
+        model_name = self.settings.ai_chat_model
+        thinking_sent = False
+
+        for chunk in self._stream_completion(payload):
+            if chunk.get("model"):
+                model_name = str(chunk["model"])
+
+            choices = chunk.get("choices") or []
+            if not choices:
+                continue
+
+            delta = choices[0].get("delta") or {}
+            reasoning_text = self._extract_text(delta.get("reasoning_content"))
+            if reasoning_text and not thinking_sent:
+                thinking_sent = True
+                yield {"type": "thinking", "model": model_name}
+
+            text = self._extract_text(delta.get("content"))
+            if text:
+                answer_parts.append(text)
+                yield {"type": "delta", "content": text, "model": model_name}
+
+        answer = "".join(answer_parts).strip()
+        if not answer:
+            raise RuntimeError("empty response from AI service")
+
+        yield {"type": "done", "answer": answer, "model": model_name}
