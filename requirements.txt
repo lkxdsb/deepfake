@@ -3,6 +3,7 @@ uvicorn[standard]
 jinja2
 python-multipart
 pydantic
+openai
 opencv-python
 numpy
 librosa

@@ -21,4 +21,4 @@ resources/frame_data/
 outputs/
 *.db
 introduction/
-
+.venv/

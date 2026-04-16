@@ -81,6 +81,7 @@ dependencies:
       - nvidia-nvtx-cu12==12.1.105
       - omegaconf==2.3.0
       - open-clip-torch==2.24.0
+      - openai==1.76.2
       - opencv-python==4.9.0.80
       - opencv-python-headless==4.9.0.80
       - packaging==23.2

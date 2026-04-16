@@ -1,4 +1,4 @@
-﻿from typing import Any, Dict, List, Optional
+﻿from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -44,3 +44,13 @@ class HistoryItem(BaseModel):
 class HistoryDetail(BaseModel):
     batch: Dict[str, Any]
     items: List[Dict[str, Any]]
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=2000)
+
+
+class ChatRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=2000)
+    history: List[ChatMessage] = Field(default_factory=list)
