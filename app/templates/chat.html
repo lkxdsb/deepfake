@@ -3,44 +3,63 @@
 {% block body_class %}page-chat{% endblock %}
 {% block main_class %}site-main--chat{% endblock %}
 {% block content %}
-<section class="llm-shell">
-  <div class="llm-shell__header">
-    <div>
+<section class="chat-app">
+  <aside class="chat-sidebar">
+    <div class="chat-sidebar__brand">
       <p class="eyebrow">Deepfake Copilot</p>
-      <h1>AI 问答</h1>
+      <h1>AI问答</h1>
+      <p>面向深度伪造检测场景的专用知识问答。</p>
     </div>
-    <a class="llm-shell__back" href="/">返回首页</a>
-  </div>
 
-  <div id="chat-thread" class="llm-thread" aria-live="polite">
-    <section id="chat-empty" class="chat-welcome">
-      <div class="chat-welcome__halo"></div>
-      <p class="chat-welcome__eyebrow">深度伪造检测助手</p>
-      <h2>从原理、痕迹到结果解读，直接问。</h2>
-      <p class="chat-welcome__lede">可以问检测机制、视频/音频伪造痕迹、指标含义，或者答辩时怎么解释误检与漏检。</p>
-      <div class="chat-starters">
-        <button class="chat-starter" type="button" data-chat-question="深度伪造检测和传统图像篡改检测有什么区别？">深伪检测和图像篡改检测的区别</button>
-        <button class="chat-starter" type="button" data-chat-question="为什么视频 deepfake 检测不能只看单帧？">为什么视频检测不能只看单帧</button>
-        <button class="chat-starter" type="button" data-chat-question="为什么结果页里要展示热力图、关键帧和概率曲线？">为什么要看热力图、关键帧和概率曲线</button>
-        <button class="chat-starter" type="button" data-chat-question="答辩时如何解释误检和漏检？">答辩时怎么解释误检和漏检</button>
+    <a class="chat-sidebar__back" href="/">返回首页</a>
+
+    <div class="chat-sidebar__section">
+      <span class="chat-sidebar__label">快捷问题</span>
+      <div class="chat-sidebar__prompts">
+        <button class="chat-sidebar__prompt" type="button" data-chat-question="深度伪造检测和传统图像篡改检测有什么区别？">深伪检测和图像篡改检测有什么区别</button>
+        <button class="chat-sidebar__prompt" type="button" data-chat-question="为什么视频 deepfake 检测不能只看单帧？">为什么视频检测不能只看单帧</button>
+        <button class="chat-sidebar__prompt" type="button" data-chat-question="为什么结果页里要展示热力图、关键帧和概率曲线？">为什么结果页要展示热力图、关键帧和概率曲线</button>
+        <button class="chat-sidebar__prompt" type="button" data-chat-question="答辩时如何解释误检和漏检？">答辩时怎么解释误检和漏检</button>
       </div>
-    </section>
-  </div>
+    </div>
 
-  <div class="llm-composer-wrap">
-    <p id="chat-status" class="chat-status" hidden></p>
-    <form id="chat-form" class="llm-composer">
-      <textarea
-        id="chat-input"
-        class="llm-composer__input"
-        rows="1"
-        maxlength="2000"
-        placeholder="输入你关于深度伪造检测的问题..."
-        {% if not ai_chat_ready %}disabled{% endif %}
-      ></textarea>
-      <button id="chat-submit" class="llm-composer__submit" type="submit" {% if not ai_chat_ready %}disabled{% endif %}>发送</button>
-    </form>
-    <p class="llm-composer__hint">支持连续追问，回答范围限定为深度伪造检测与平台使用。</p>
+    <div class="chat-sidebar__foot">
+      <span>Enter 发送</span>
+      <span>Shift + Enter 换行</span>
+    </div>
+  </aside>
+
+  <div class="chat-main">
+    <header class="chat-main__header">
+      <div>
+        <strong>Deepfake Detection Copilot</strong>
+        <p>聚焦检测原理、异常痕迹、结果解读与平台使用。</p>
+      </div>
+      <span class="chat-main__badge">Focused Scope</span>
+    </header>
+
+    <div id="chat-thread" class="chat-canvas" aria-live="polite">
+      <section id="chat-empty" class="chat-empty">
+        <p class="chat-empty__eyebrow">Start A Conversation</p>
+        <h2>从“为什么异常”到“怎么讲清结果”，这里直接对话。</h2>
+        <p class="chat-empty__lede">你可以直接问检测原理、视频/音频伪造痕迹、关键指标含义，或者如何在答辩里解释模型局限性。</p>
+      </section>
+    </div>
+
+    <div class="chat-dock">
+      <p id="chat-status" class="chat-status" hidden></p>
+      <form id="chat-form" class="chat-composer">
+        <textarea
+          id="chat-input"
+          class="chat-composer__input"
+          rows="1"
+          maxlength="2000"
+          placeholder="输入你关于深度伪造检测的问题..."
+          {% if not ai_chat_ready %}disabled{% endif %}
+        ></textarea>
+        <button id="chat-submit" class="chat-composer__submit" type="submit" {% if not ai_chat_ready %}disabled{% endif %}>发送</button>
+      </form>
+    </div>
   </div>
 </section>
 
@@ -74,22 +93,22 @@ function ensureConversationMode() {
 
 function appendChatBubble(role, text) {
   ensureConversationMode();
-  const bubble = document.createElement('article');
-  bubble.className = `llm-message llm-message--${role}`;
+  const message = document.createElement('article');
+  message.className = `chat-message chat-message--${role}`;
 
   const meta = document.createElement('div');
-  meta.className = 'llm-message__meta';
+  meta.className = 'chat-message__meta';
   meta.textContent = role === 'user' ? '你' : 'AI 助手';
 
-  const content = document.createElement('div');
-  content.className = 'llm-message__body';
+  const body = document.createElement('div');
+  body.className = 'chat-message__body';
   const paragraph = document.createElement('p');
   paragraph.textContent = text;
-  content.appendChild(paragraph);
+  body.appendChild(paragraph);
 
-  bubble.appendChild(meta);
-  bubble.appendChild(content);
-  chatThread.appendChild(bubble);
+  message.appendChild(meta);
+  message.appendChild(body);
+  chatThread.appendChild(message);
   chatThread.scrollTop = chatThread.scrollHeight;
 }
 
@@ -105,7 +124,7 @@ function toggleChatSubmitting(isSubmitting) {
 
 function autoresizeInput() {
   chatInput.style.height = 'auto';
-  chatInput.style.height = `${Math.min(chatInput.scrollHeight, 180)}px`;
+  chatInput.style.height = `${Math.min(chatInput.scrollHeight, 200)}px`;
 }
 
 async function askAi(question) {
@@ -115,7 +134,7 @@ async function askAi(question) {
     return;
   }
   if (!chatReady) {
-    setChatStatus('AI 问答当前不可用。当前原因通常是服务未重启或接口依赖未就绪。');
+    setChatStatus('AI 问答当前不可用。请先重启后端服务，让新版本代码生效。');
     return;
   }
 
@@ -144,7 +163,7 @@ async function askAi(question) {
     if (chatHistory.length > maxClientHistory) {
       chatHistory.splice(0, chatHistory.length - maxClientHistory);
     }
-    setChatStatus('', 'muted');
+    setChatStatus('');
   } catch (err) {
     appendChatBubble('assistant', '当前问答服务未成功返回结果，请稍后重试。');
     setChatStatus(`提问失败：${err.message}`);
@@ -179,7 +198,7 @@ document.querySelectorAll('[data-chat-question]').forEach((button) => {
 
 autoresizeInput();
 if (!chatReady) {
-  setChatStatus('AI 问答当前不可用。当前原因通常是服务未重启或接口依赖未就绪。');
+  setChatStatus('AI 问答当前不可用。请先重启后端服务，让新版本代码生效。');
 }
 </script>
 {% endblock %}

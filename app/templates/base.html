@@ -21,6 +21,8 @@
         </a>
         <nav class="site-nav" aria-label="主导航">
           <a class="{% if request.url.path == '/' %}is-active{% endif %}" href="/">首页</a>
+          <a class="{% if request.url.path.startswith('/education') %}is-active{% endif %}" href="/education">科普频道</a>
+          <a class="{% if request.url.path.startswith('/quiz') %}is-active{% endif %}" href="/quiz">反诈闯关</a>
           <a class="{% if request.url.path.startswith('/detect/image') %}is-active{% endif %}" href="/detect/image">图片检测</a>
           <a class="{% if request.url.path.startswith('/detect/video') %}is-active{% endif %}" href="/detect/video">视频检测</a>
           <a class="{% if request.url.path.startswith('/detect/audio') %}is-active{% endif %}" href="/detect/audio">音频检测</a>

@@ -2,6 +2,10 @@
 {% block title %}首页 - 多模态深度伪造检测平台{% endblock %}
 {% block body_class %}page-home{% endblock %}
 {% block main_class %}site-main--home{% endblock %}
+{% block head_extra %}
+<script defer src="/static/vendor/echarts.min.js"></script>
+<script defer src="/static/dashboard.js"></script>
+{% endblock %}
 {% block content %}
 <section class="hero">
   <div class="hero__copy">
@@ -67,6 +71,56 @@
       <h3>音频检测</h3>
       <p>基于音频 deepfake 模型输出真假、阈值比较与伪造概率说明。</p>
       <a class="text-link" href="/detect/audio">进入音频检测</a>
+    </article>
+  </div>
+</section>
+
+<section class="section-block overview-section">
+  <div class="section-heading">
+    <p class="eyebrow">Live Overview</p>
+    <h2>把真实历史数据直接放进答辩首页</h2>
+    <p>这里不展示虚构跑分，只展示平台已经记录过的检测历史，让首页看起来像真实工作台而不是静态展板。</p>
+  </div>
+  <div class="metric-band metric-band--overview">
+    <div class="metric-tile">
+      <span>累计任务数</span>
+      <strong>{{ history_summary.total_tasks or 0 }}</strong>
+    </div>
+    <div class="metric-tile">
+      <span>累计样本数</span>
+      <strong>{{ history_summary.total_samples or 0 }}</strong>
+    </div>
+    <div class="metric-tile">
+      <span>整体可疑率</span>
+      <strong>{{ '%.1f'|format((history_summary.overall_suspicious_rate or 0) * 100) }}%</strong>
+    </div>
+    <div class="metric-tile">
+      <span>最近一次检测</span>
+      <strong class="metric-tile__value metric-tile__value--compact">{{ history_summary.latest_created_at or '暂无历史' }}</strong>
+    </div>
+  </div>
+  <div class="analytics-grid analytics-grid--two">
+    <article class="surface-panel surface-panel--analytics">
+      <div class="panel-heading">
+        <h3>最近 10 个批次可疑率趋势</h3>
+        <p>突出系统近期跑过的真实任务走势，适合答辩时快速说明平台不是一次性演示页面。</p>
+      </div>
+      {% if history_summary.recent_batches and history_summary.recent_batches|length > 0 %}
+        <div id="home-trend-chart" class="chart-shell"></div>
+      {% else %}
+        <p class="inline-note">暂无历史记录，运行一次图片、视频或音频检测后这里会自动出现真实趋势图。</p>
+      {% endif %}
+    </article>
+    <article class="surface-panel surface-panel--analytics">
+      <div class="panel-heading">
+        <h3>模态样本占比</h3>
+        <p>展示图片、视频、音频三类历史样本分布，方便说明系统覆盖边界。</p>
+      </div>
+      {% if history_summary.modalities and history_summary.modalities|length > 0 %}
+        <div id="home-mode-share-chart" class="chart-shell"></div>
+      {% else %}
+        <p class="inline-note">暂无模态分布数据。</p>
+      {% endif %}
     </article>
   </div>
 </section>
@@ -195,6 +249,28 @@
   </div>
 </section>
 
+<section class="section-block edu-launch">
+  <div class="section-heading">
+    <p class="eyebrow">Media Literacy</p>
+    <h2>新增科普频道与反诈闯关，把“能检测”扩展成“会防骗”</h2>
+    <p>除了模型检测，现在首页也可以直接进入 deepfake / AI 换脸 / AI 换音知识页，并通过闯关题练习风险判断。</p>
+  </div>
+  <div class="edu-launch__grid">
+    <article class="edu-launch__panel">
+      <span class="edu-launch__tag">科普频道</span>
+      <h3>讲概念、讲套路、讲素材来源</h3>
+      <p>集中解释 deepfake、AI 换脸、AI 换音的边界，整理常见骗局和合法素材渠道。</p>
+      <a class="button button--secondary" href="/education">进入科普频道</a>
+    </article>
+    <article class="edu-launch__panel">
+      <span class="edu-launch__tag">反诈闯关</span>
+      <h3>用多道题训练仿骗意识</h3>
+      <p>覆盖熟人求助、名人带货、仿声来电、绕审批付款和版权使用意识等情景。</p>
+      <a class="button button--primary" href="/quiz">开始闯关答题</a>
+    </article>
+  </div>
+</section>
+
 <section class="section-block final-cta">
   <div>
     <p class="eyebrow">Ready For Demo</p>
@@ -208,6 +284,7 @@
 </section>
 
 <script>
+const historySummary = {{ history_summary|tojson }};
 const chatReady = {{ 'true' if ai_chat_ready else 'false' }};
 const chatHistory = [];
 const maxClientHistory = 6;
@@ -321,6 +398,20 @@ document.querySelectorAll('[data-chat-question]').forEach((button) => {
     document.getElementById('chat-input').value = button.dataset.chatQuestion || '';
     await askAi(button.dataset.chatQuestion || '');
   });
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (!window.DeepfakeViz) {
+    return;
+  }
+  DeepfakeViz.initBatchTrendChart(
+    document.getElementById('home-trend-chart'),
+    historySummary.recent_batches || [],
+  );
+  DeepfakeViz.initModeShareChart(
+    document.getElementById('home-mode-share-chart'),
+    historySummary.modalities || [],
+  );
 });
 </script>
 {% endblock %}
