@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}科普频道 - 多模态深度伪造检测平台{% endblock %}
+{% block body_class %}page-education{% endblock %}
+{% block main_class %}site-main--education{% endblock %}
+{% block content %}
+<section class="edu-hero">
+  <div class="edu-hero__copy">
+    <p class="eyebrow">Education Channel</p>
+    <h1>识别 deepfake、AI 换脸、AI 换音，不只靠“看起来像不像”。</h1>
+    <p class="edu-hero__lede">
+      这个频道把概念解释、常见诈骗套路、识别线索和素材来源放到一个入口里。
+      目标不是教人“挑刺”，而是建立一套遇到高仿内容时能立刻执行的验证动作。
+    </p>
+    <div class="hero__actions">
+      <a class="button button--primary" href="/quiz">开始反诈闯关</a>
+      <a class="button button--secondary" href="/detect/video">体验视频检测</a>
+    </div>
+    <div class="edu-hero__metrics">
+      <div>
+        <span>03</span>
+        <strong>核心主题</strong>
+        <small>deepfake / 换脸 / 换音</small>
+      </div>
+      <div>
+        <span>04</span>
+        <strong>验证动作</strong>
+        <small>暂停、复核、追问、留痕</small>
+      </div>
+      <div>
+        <span>{{ quiz_question_count }}</span>
+        <strong>答题题库</strong>
+        <small>覆盖熟人诈骗、平台信息与版权意识</small>
+      </div>
+    </div>
+  </div>
+  <div class="edu-hero__visual" aria-hidden="true">
+    <div class="edu-orbit edu-orbit--one"></div>
+    <div class="edu-orbit edu-orbit--two"></div>
+    <div class="edu-monitor">
+      <div class="edu-monitor__line">
+        <span>REALITY CHECK</span>
+        <strong>身份核验优先于画面直觉</strong>
+      </div>
+      <div class="edu-monitor__grid">
+        <div>
+          <small>Face</small>
+          <p>边缘、口型、反光、转头</p>
+        </div>
+        <div>
+          <small>Voice</small>
+          <p>气口、停顿、情绪、背景声</p>
+        </div>
+        <div>
+          <small>Context</small>
+          <p>账号、链接、域名、流程</p>
+        </div>
+        <div>
+          <small>Action</small>
+          <p>停下、回拨、复核、留痕</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-block">
+  <div class="section-heading">
+    <p class="eyebrow">Core Topics</p>
+    <h2>先讲清概念边界，再谈怎么防</h2>
+    <p>很多人把所有 AI 合成内容都叫“换脸”，但真正的风险判断需要拆开看：它替换了什么、冒充了谁、想推动你做什么。</p>
+  </div>
+  <div class="edu-topic-grid">
+    {% for track in education_tracks %}
+    <article class="edu-topic">
+      <span class="edu-topic__label">{{ track.label }}</span>
+      <h3>{{ track.title }}</h3>
+      <p>{{ track.summary }}</p>
+      <ul class="edu-list">
+        {% for item in track.points %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section-block">
+  <div class="section-heading">
+    <p class="eyebrow">Fraud Patterns</p>
+    <h2>骗子不是只做一个“假视频”，而是在搭整套信任陷阱</h2>
+    <p>高仿内容只负责打开信任缺口，真正让人上当的，往往是催促、保密、绕流程和切换到陌生渠道这几步。</p>
+  </div>
+  <div class="edu-scenario-grid">
+    {% for scenario in scam_scenarios %}
+    <article class="edu-scenario">
+      <span>{{ scenario.index }}</span>
+      <h3>{{ scenario.title }}</h3>
+      <p>{{ scenario.summary }}</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section-block">
+  <div class="section-heading">
+    <p class="eyebrow">How To Spot</p>
+    <h2>别把注意力全放在“真假脸”，行为和来源同样重要</h2>
+    <p>如果你只盯着像素级瑕疵，反而容易忽略更稳定的危险信号：催转账、要验证码、阻止你回拨、阻止你找第三方确认。</p>
+  </div>
+  <div class="edu-signal-grid">
+    {% for group in spotting_signals %}
+    <article class="edu-signal">
+      <h3>{{ group.title }}</h3>
+      <ul class="edu-list">
+        {% for item in group["items"] %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section-block">
+  <div class="section-heading">
+    <p class="eyebrow">Verification Loop</p>
+    <h2>真正管用的是四步验证法</h2>
+    <p>它比“我觉得这人不像真的”更可靠，因为它能在你慌张、被催促、信息不完整的时候继续工作。</p>
+  </div>
+  <div class="edu-steps">
+    {% for item in verification_steps %}
+    <article class="edu-step">
+      <span class="edu-step__tag">{{ item.step }}</span>
+      <h3>{{ item.title }}</h3>
+      <p>{{ item.detail }}</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section-block">
+  <div class="section-heading">
+    <p class="eyebrow">Source Library</p>
+    <h2>素材和参考不要乱抓，优先用官方信息和可复用媒体库</h2>
+    <p>我没有直接把第三方整篇文章和视频搬进项目里，因为那样最容易踩版权。这里已经帮你整理出更稳妥的来源入口。</p>
+  </div>
+  <div class="edu-resource-groups">
+    {% for group in resource_groups %}
+    <section class="edu-resource-group">
+      <div class="edu-resource-group__head">
+        <h3>{{ group.title }}</h3>
+        <p>{{ group.summary }}</p>
+      </div>
+      <div class="edu-resource-list">
+        {% for link in group.links %}
+        <a class="edu-resource" href="{{ link.url }}" target="_blank" rel="noreferrer">
+          <strong>{{ link.name }}</strong>
+          <span>{{ link.meta }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+  <p class="inline-note">
+    使用建议：文章类内容优先“摘要 + 原链接 + 你的讲解”；图片 / 视频素材优先下载单个素材页后核对许可，不要整站镜像或去水印搬运。
+  </p>
+</section>
+
+<section class="section-block final-cta">
+  <div>
+    <p class="eyebrow">Ready To Practice</p>
+    <h2>理解概念之后，马上用题目检验你的仿骗意识。</h2>
+  </div>
+  <div class="hero__actions">
+    <a class="button button--primary" href="/quiz">进入闯关答题</a>
+    <a class="button button--ghost" href="/history">返回业务页面</a>
+  </div>
+</section>
+{% endblock %}

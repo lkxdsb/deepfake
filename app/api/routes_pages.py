@@ -5,6 +5,15 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from app.api.deps import get_services
+from app.content.education_content import (
+    EDUCATION_TRACKS,
+    QUIZ_BADGES,
+    QUIZ_QUESTIONS,
+    RESOURCE_GROUPS,
+    SCAM_SCENARIOS,
+    SPOTTING_SIGNALS,
+    VERIFICATION_STEPS,
+)
 from app.services.container import ServiceContainer
 
 
@@ -12,17 +21,24 @@ router = APIRouter(tags=["pages"])
 
 
 def get_templates(services: ServiceContainer) -> Jinja2Templates:
-    return Jinja2Templates(directory=str(services.settings.templates_dir))
+    templates = Jinja2Templates(directory=str(services.settings.templates_dir))
+    css_path = services.settings.static_dir / "style.css"
+    templates.env.globals["asset_version"] = int(css_path.stat().st_mtime) if css_path.exists() else 1
+    return templates
 
 
 @router.get("/", response_class=HTMLResponse)
 def page_index(request: Request, services: ServiceContainer = Depends(get_services)):
     templates = get_templates(services)
+    history_summary = services.history_service.get_history_summary(recent_limit=10)
     return templates.TemplateResponse(
         "index.html",
         {
             "request": request,
             "demo_video": str(services.settings.demo_video_path.name),
+            "history_summary": history_summary,
+            "ai_chat_ready": services.chat_service.is_ready(),
+            "ai_chat_model": services.settings.ai_chat_model,
         },
     )
 
@@ -35,6 +51,36 @@ def page_chat(request: Request, services: ServiceContainer = Depends(get_service
         {
             "request": request,
             "ai_chat_ready": services.chat_service.is_ready(),
+        },
+    )
+
+
+@router.get("/education", response_class=HTMLResponse)
+def page_education(request: Request, services: ServiceContainer = Depends(get_services)):
+    templates = get_templates(services)
+    return templates.TemplateResponse(
+        "education.html",
+        {
+            "request": request,
+            "education_tracks": EDUCATION_TRACKS,
+            "scam_scenarios": SCAM_SCENARIOS,
+            "spotting_signals": SPOTTING_SIGNALS,
+            "verification_steps": VERIFICATION_STEPS,
+            "resource_groups": RESOURCE_GROUPS,
+            "quiz_question_count": len(QUIZ_QUESTIONS),
+        },
+    )
+
+
+@router.get("/quiz", response_class=HTMLResponse)
+def page_quiz(request: Request, services: ServiceContainer = Depends(get_services)):
+    templates = get_templates(services)
+    return templates.TemplateResponse(
+        "quiz.html",
+        {
+            "request": request,
+            "quiz_questions": QUIZ_QUESTIONS,
+            "quiz_badges": QUIZ_BADGES,
         },
     )
 
@@ -113,7 +159,15 @@ def page_result(
 def page_history(request: Request, services: ServiceContainer = Depends(get_services)):
     templates = get_templates(services)
     items = services.history_service.list_records(limit=200)
-    return templates.TemplateResponse("history.html", {"request": request, "items": items})
+    history_summary = services.history_service.get_history_summary(recent_limit=20)
+    return templates.TemplateResponse(
+        "history.html",
+        {
+            "request": request,
+            "items": items,
+            "history_summary": history_summary,
+        },
+    )
 
 
 @router.get("/history/{task_id}", response_class=HTMLResponse)
@@ -129,6 +183,7 @@ def page_history_detail(task_id: str, request: Request, services: ServiceContain
         rows = [row]
 
     batch = services.history_service.build_batch_summary(rows)
+    analytics = services.history_service.build_batch_analytics(rows)
     items = []
     for item_row in rows:
         items.append(
@@ -145,5 +200,6 @@ def page_history_detail(task_id: str, request: Request, services: ServiceContain
             "task_id": task_id,
             "batch": batch,
             "items": items,
+            "analytics": analytics,
         },
     )

@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}历史记录 - 多模态深度伪造检测平台{% endblock %}
 {% block body_class %}page-history{% endblock %}
+{% block head_extra %}
+<script defer src="/static/vendor/echarts.min.js"></script>
+<script defer src="/static/dashboard.js"></script>
+{% endblock %}
 {% block content %}
 <section class="history-shell">
   <div class="result-command">
@@ -14,20 +18,58 @@
   <div class="metric-band">
     <div class="metric-tile">
       <span>任务数</span>
-      <strong>{{ items|length }}</strong>
+      <strong>{{ history_summary.total_tasks or 0 }}</strong>
     </div>
     <div class="metric-tile">
       <span>累计文件数</span>
-      <strong>{{ items|sum(attribute='item_count') if items else 0 }}</strong>
+      <strong>{{ history_summary.total_samples or 0 }}</strong>
     </div>
     <div class="metric-tile">
       <span>累计可疑数</span>
-      <strong>{{ items|sum(attribute='fake_count') if items else 0 }}</strong>
+      <strong>{{ history_summary.total_fake_samples or 0 }}</strong>
     </div>
     <div class="metric-tile">
-      <span>演示入口</span>
-      <strong>History</strong>
+      <span>整体可疑率</span>
+      <strong>{{ '%.1f'|format((history_summary.overall_suspicious_rate or 0) * 100) }}%</strong>
     </div>
+  </div>
+
+  <div class="analytics-grid analytics-grid--history">
+    <article class="surface-panel surface-panel--analytics chart-card chart-card--wide">
+      <div class="panel-heading">
+        <h2>最近 20 个批次可疑率趋势</h2>
+        <p>按批次回看系统近期风险波动，适合答辩时说明“平台已经跑过哪些真实任务”。</p>
+      </div>
+      {% if history_summary.recent_batches and history_summary.recent_batches|length > 0 %}
+        <div id="history-trend-chart" class="chart-shell"></div>
+      {% else %}
+        <p class="inline-note">暂无历史记录，趋势图将在首次检测后自动生成。</p>
+      {% endif %}
+    </article>
+
+    <article class="surface-panel surface-panel--analytics chart-card">
+      <div class="panel-heading">
+        <h3>各模态样本与可疑样本对比</h3>
+        <p>横向比较图片、视频、音频三类历史样本规模和可疑样本量。</p>
+      </div>
+      {% if history_summary.modalities and history_summary.modalities|length > 0 %}
+        <div id="history-mode-risk-chart" class="chart-shell"></div>
+      {% else %}
+        <p class="inline-note">暂无模态统计数据。</p>
+      {% endif %}
+    </article>
+
+    <article class="surface-panel surface-panel--analytics chart-card">
+      <div class="panel-heading">
+        <h3>各模态平均推理耗时</h3>
+        <p>用于说明不同检测入口的计算开销差异。</p>
+      </div>
+      {% if history_summary.modalities and history_summary.modalities|length > 0 %}
+        <div id="history-mode-latency-chart" class="chart-shell"></div>
+      {% else %}
+        <p class="inline-note">暂无耗时统计数据。</p>
+      {% endif %}
+    </article>
   </div>
 
   <article class="surface-panel">
@@ -78,4 +120,25 @@
     {% endif %}
   </article>
 </section>
+<script>
+const historySummary = {{ history_summary|tojson }};
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (!window.DeepfakeViz) {
+    return;
+  }
+  DeepfakeViz.initBatchTrendChart(
+    document.getElementById('history-trend-chart'),
+    historySummary.recent_batches || [],
+  );
+  DeepfakeViz.initModeRiskChart(
+    document.getElementById('history-mode-risk-chart'),
+    historySummary.modalities || [],
+  );
+  DeepfakeViz.initModeLatencyChart(
+    document.getElementById('history-mode-latency-chart'),
+    historySummary.modalities || [],
+  );
+});
+</script>
 {% endblock %}

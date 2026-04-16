@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="多模态深度伪造检测平台，支持图片、视频与音频一体化智能鉴伪。">
   <title>{% block title %}多模态深度伪造检测平台{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v={{ asset_version }}">
   {% block head_extra %}{% endblock %}
 </head>
 <body class="{% block body_class %}page-default{% endblock %}">
@@ -21,6 +21,8 @@
         </a>
         <nav class="site-nav" aria-label="主导航">
           <a class="{% if request.url.path == '/' %}is-active{% endif %}" href="/">首页</a>
+          <a class="{% if request.url.path.startswith('/education') %}is-active{% endif %}" href="/education">科普频道</a>
+          <a class="{% if request.url.path.startswith('/quiz') %}is-active{% endif %}" href="/quiz">反诈闯关</a>
           <a class="{% if request.url.path.startswith('/detect/image') %}is-active{% endif %}" href="/detect/image">图片检测</a>
           <a class="{% if request.url.path.startswith('/detect/video') %}is-active{% endif %}" href="/detect/video">视频检测</a>
           <a class="{% if request.url.path.startswith('/detect/audio') %}is-active{% endif %}" href="/detect/audio">音频检测</a>
