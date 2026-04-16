@@ -37,10 +37,10 @@
 
   <div class="chat-main">
     <header class="chat-main__header">
-      <div>
+      <div class="chat-main__intro">
         <span class="chat-main__kicker">Deepfake Detection Copilot</span>
-        <strong>把“哪里异常”讲成一条能复核的证据链。</strong>
-        <p>从原理解释到结果表达，界面只保留真正帮助理解结论的上下文。</p>
+        <strong>深度伪造检测问答</strong>
+        <p>聚焦检测原理、异常迹象、结果解读与答辩表达，按聊天界面的方式持续追问。</p>
       </div>
       <span class="chat-main__badge">{% if ai_chat_ready %}Ready{% else %}Offline{% endif %}</span>
     </header>
@@ -48,8 +48,8 @@
     <div id="chat-thread" class="chat-canvas" aria-live="polite">
       <section id="chat-empty" class="chat-empty">
         <p class="chat-empty__eyebrow">Start A Conversation</p>
-        <h2>从“为什么异常”到“怎么讲清结果”，这里直接对话。</h2>
-        <p class="chat-empty__lede">你可以直接问检测原理、视频/音频伪造痕迹、关键指标含义，或者如何在答辩里解释模型局限性。</p>
+        <h2>直接提问，不需要先选模式。</h2>
+        <p class="chat-empty__lede">可以从检测原理、伪造痕迹、热力图解读、误检漏检解释这些高频问题开始。</p>
         <div class="chat-empty__signals">
           <div>
             <span>01</span>
@@ -95,6 +95,7 @@ const chatThread = document.getElementById('chat-thread');
 const chatEmpty = document.getElementById('chat-empty');
 const chatInput = document.getElementById('chat-input');
 const chatSubmit = document.getElementById('chat-submit');
+const chatMain = document.querySelector('.chat-main');
 
 function setChatStatus(text, type = 'error') {
   const status = document.getElementById('chat-status');
@@ -110,6 +111,7 @@ function setChatStatus(text, type = 'error') {
 }
 
 function ensureConversationMode() {
+  chatMain.classList.add('is-conversation');
   if (chatEmpty) {
     chatEmpty.remove();
   }
@@ -125,10 +127,14 @@ function appendChatBubble(role, text) {
   meta.textContent = role === 'user' ? '你' : 'AI 助手';
 
   const body = document.createElement('div');
-  body.className = 'chat-message__body';
-  const paragraph = document.createElement('p');
-  paragraph.textContent = text;
-  body.appendChild(paragraph);
+  body.className = 'chat-message__body chat-rich-text';
+  if (window.DeepfakeChat && role === 'assistant') {
+    window.DeepfakeChat.renderInto(body, text, { markdown: true });
+  } else {
+    const paragraph = document.createElement('p');
+    paragraph.textContent = text;
+    body.appendChild(paragraph);
+  }
 
   message.appendChild(meta);
   message.appendChild(body);
