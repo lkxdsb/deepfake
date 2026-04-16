@@ -637,6 +637,10 @@ p {
   gap: 10px;
 }
 
+.chat-toolbar {
+  margin-bottom: 18px;
+}
+
 .chat-thread {
   display: grid;
   gap: 14px;

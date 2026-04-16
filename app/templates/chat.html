@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}AI问答 - 多模态深度伪造检测平台{% endblock %}
+{% block main_class %}site-main--home{% endblock %}
+{% block content %}
+<section class="section-block">
+  <div class="section-heading">
+    <p class="eyebrow">AI Copilot</p>
+    <h2>AI 问答</h2>
+    <p>围绕深度伪造检测原理、常见伪造痕迹、结果解读和平台使用直接提问。</p>
+  </div>
+  <div class="chat-panel chat-panel--console">
+    <div class="chat-suggestions chat-toolbar">
+      <button class="button button--ghost button--small" type="button" data-chat-question="深度伪造检测和传统图像篡改检测有什么区别？" {% if not ai_chat_ready %}disabled{% endif %}>检测区别</button>
+      <button class="button button--ghost button--small" type="button" data-chat-question="为什么结果页里要展示热力图、关键帧和概率曲线？" {% if not ai_chat_ready %}disabled{% endif %}>结果解读</button>
+      <button class="button button--ghost button--small" type="button" data-chat-question="音频 deepfake 常见的伪造痕迹有哪些？" {% if not ai_chat_ready %}disabled{% endif %}>音频痕迹</button>
+      <button class="button button--ghost button--small" type="button" data-chat-question="答辩时如何解释误检和漏检？" {% if not ai_chat_ready %}disabled{% endif %}>答辩表达</button>
+    </div>
+    <div id="chat-thread" class="chat-thread" aria-live="polite">
+      <article class="chat-bubble chat-bubble--assistant">
+        <span class="chat-bubble__role">AI 助手</span>
+        <p>可以直接问我深度伪造检测相关问题。</p>
+      </article>
+    </div>
+    <form id="chat-form" class="chat-form">
+      <textarea
+        id="chat-input"
+        class="chat-input"
+        rows="4"
+        maxlength="2000"
+        placeholder="例如：为什么视频 deepfake 检测不能只看单帧？"
+        {% if not ai_chat_ready %}disabled{% endif %}
+      ></textarea>
+      <div class="chat-form__footer">
+        <p id="chat-status" class="inline-status inline-status--error" {% if ai_chat_ready %}hidden{% endif %}>
+          AI 问答服务当前不可用，请检查后端依赖与接口配置。
+        </p>
+        <button id="chat-submit" class="button button--primary" type="submit" {% if not ai_chat_ready %}disabled{% endif %}>发送提问</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<script>
+const chatReady = {{ 'true' if ai_chat_ready else 'false' }};
+const chatHistory = [];
+const maxClientHistory = 6;
+
+function setChatStatus(text, type = 'muted') {
+  const status = document.getElementById('chat-status');
+  status.hidden = false;
+  status.textContent = text;
+  status.className = `inline-status inline-status--${type}`;
+}
+
+function appendChatBubble(role, text) {
+  const thread = document.getElementById('chat-thread');
+  const bubble = document.createElement('article');
+  bubble.className = `chat-bubble chat-bubble--${role}`;
+
+  const roleLabel = document.createElement('span');
+  roleLabel.className = 'chat-bubble__role';
+  roleLabel.textContent = role === 'user' ? '用户' : 'AI 助手';
+
+  const content = document.createElement('p');
+  content.textContent = text;
+
+  bubble.appendChild(roleLabel);
+  bubble.appendChild(content);
+  thread.appendChild(bubble);
+  thread.scrollTop = thread.scrollHeight;
+}
+
+function toggleChatSubmitting(isSubmitting) {
+  const input = document.getElementById('chat-input');
+  const submit = document.getElementById('chat-submit');
+  const quickButtons = document.querySelectorAll('[data-chat-question]');
+  input.disabled = isSubmitting || !chatReady;
+  submit.disabled = isSubmitting || !chatReady;
+  quickButtons.forEach((button) => {
+    button.disabled = isSubmitting || !chatReady;
+  });
+  submit.textContent = isSubmitting ? '思考中...' : '发送提问';
+}
+
+async function askAi(question) {
+  const cleaned = question.trim();
+  if (!cleaned) {
+    setChatStatus('请输入问题后再发送。', 'error');
+    return;
+  }
+  if (!chatReady) {
+    setChatStatus('AI 问答服务当前不可用，请检查后端依赖与接口配置。', 'error');
+    return;
+  }
+
+  appendChatBubble('user', cleaned);
+  setChatStatus('AI 正在生成回答，请稍候...', 'pending');
+  toggleChatSubmitting(true);
+
+  try {
+    const res = await fetch('/api/chat/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question: cleaned,
+        history: chatHistory.slice(-maxClientHistory),
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.code !== 0) {
+      throw new Error(data.message || 'chat request failed');
+    }
+
+    const answer = data.data.answer || '暂时没有生成有效回复。';
+    appendChatBubble('assistant', answer);
+    chatHistory.push({ role: 'user', content: cleaned });
+    chatHistory.push({ role: 'assistant', content: answer });
+    if (chatHistory.length > maxClientHistory) {
+      chatHistory.splice(0, chatHistory.length - maxClientHistory);
+    }
+    document.getElementById('chat-status').hidden = true;
+  } catch (err) {
+    appendChatBubble('assistant', '当前问答服务不可用，请稍后重试。');
+    setChatStatus(`提问失败：${err.message}`, 'error');
+  } finally {
+    document.getElementById('chat-input').value = '';
+    toggleChatSubmitting(false);
+  }
+}
+
+document.getElementById('chat-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  await askAi(document.getElementById('chat-input').value);
+});
+
+document.querySelectorAll('[data-chat-question]').forEach((button) => {
+  button.addEventListener('click', async () => {
+    document.getElementById('chat-input').value = button.dataset.chatQuestion || '';
+    await askAi(button.dataset.chatQuestion || '');
+  });
+});
+</script>
+{% endblock %}

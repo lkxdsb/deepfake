@@ -24,6 +24,7 @@
           <a class="{% if request.url.path.startswith('/detect/image') %}is-active{% endif %}" href="/detect/image">图片检测</a>
           <a class="{% if request.url.path.startswith('/detect/video') %}is-active{% endif %}" href="/detect/video">视频检测</a>
           <a class="{% if request.url.path.startswith('/detect/audio') %}is-active{% endif %}" href="/detect/audio">音频检测</a>
+          <a class="{% if request.url.path.startswith('/chat') %}is-active{% endif %}" href="/chat">AI问答</a>
           <a class="{% if request.url.path.startswith('/history') %}is-active{% endif %}" href="/history">历史记录</a>
         </nav>
         <div class="site-badge">Competition Edition</div>

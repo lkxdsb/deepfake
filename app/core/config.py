@@ -4,6 +4,9 @@ from pathlib import Path
 from typing import Optional
 
 
+DEFAULT_AI_CHAT_API_KEY = "sk-b03f0662b0f24f32817f71994c84a0ec"
+
+
 def _env_bool(name: str, default: bool) -> bool:
     value = os.getenv(name)
     if value is None:
@@ -128,6 +131,7 @@ def load_settings() -> Settings:
             os.getenv("AI_CHAT_API_KEY")
             or os.getenv("DASHSCOPE_API_KEY")
             or os.getenv("OPENAI_API_KEY")
+            or DEFAULT_AI_CHAT_API_KEY
         ),
         ai_chat_base_url=os.getenv(
             "AI_CHAT_BASE_URL",
