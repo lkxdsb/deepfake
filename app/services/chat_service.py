@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import Dict, List
+import json
+from typing import Any, Dict, List
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 from app.core.config import Settings
-
-try:
-    from openai import OpenAI
-except ImportError:  # pragma: no cover - handled at runtime
-    OpenAI = None
 
 
 SYSTEM_PROMPT = """
@@ -33,22 +31,13 @@ SYSTEM_PROMPT = """
 class ChatService:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        self._client = None
 
     def is_ready(self) -> bool:
-        return bool(self.settings.ai_chat_api_key) and OpenAI is not None
-
-    def _get_client(self):
-        if OpenAI is None:
-            raise RuntimeError("missing dependency: openai")
-        if not self.settings.ai_chat_api_key:
-            raise RuntimeError("AI chat API key is not configured")
-        if self._client is None:
-            self._client = OpenAI(
-                api_key=self.settings.ai_chat_api_key,
-                base_url=self.settings.ai_chat_base_url,
-            )
-        return self._client
+        return bool(
+            self.settings.ai_chat_api_key
+            and self.settings.ai_chat_base_url
+            and self.settings.ai_chat_model
+        )
 
     def _build_messages(self, question: str, history: List[Dict[str, str]]) -> List[Dict[str, str]]:
         messages: List[Dict[str, str]] = [{"role": "system", "content": SYSTEM_PROMPT}]
@@ -63,34 +52,77 @@ class ChatService:
         messages.append({"role": "user", "content": question.strip()[:2000]})
         return messages
 
+    def _extract_text(self, content: Any) -> str:
+        if isinstance(content, str):
+            return content.strip()
+        if isinstance(content, list):
+            parts: List[str] = []
+            for item in content:
+                if isinstance(item, str):
+                    parts.append(item)
+                    continue
+                if not isinstance(item, dict):
+                    continue
+                if item.get("type") == "text" and item.get("text"):
+                    parts.append(str(item["text"]))
+                    continue
+                if item.get("text"):
+                    parts.append(str(item["text"]))
+            return "\n".join(part.strip() for part in parts if part and part.strip()).strip()
+        return ""
+
+    def _request_completion(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        if not self.settings.ai_chat_api_key:
+            raise RuntimeError("AI chat API key is not configured")
+
+        endpoint = self.settings.ai_chat_base_url.rstrip("/") + "/chat/completions"
+        request = Request(
+            endpoint,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.settings.ai_chat_api_key}",
+            },
+            method="POST",
+        )
+
+        try:
+            with urlopen(request, timeout=120) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except HTTPError as ex:
+            detail = ex.read().decode("utf-8", errors="ignore")
+            try:
+                data = json.loads(detail) if detail else {}
+                message = data.get("error", {}).get("message") or data.get("message") or detail
+            except Exception:
+                message = detail or str(ex)
+            raise RuntimeError(f"AI service error: {message}") from ex
+        except URLError as ex:
+            raise RuntimeError(f"AI service connection failed: {ex.reason}") from ex
+
     def ask(self, question: str, history: List[Dict[str, str]]) -> Dict[str, str]:
         prompt = question.strip()
         if not prompt:
             raise ValueError("question is required")
 
-        client = self._get_client()
-        stream = client.chat.completions.create(
-            model=self.settings.ai_chat_model,
-            messages=self._build_messages(prompt, history),
-            temperature=self.settings.ai_chat_temperature,
-            extra_body={"enable_thinking": self.settings.ai_chat_enable_thinking},
-            stream=True,
-        )
+        payload = {
+            "model": self.settings.ai_chat_model,
+            "messages": self._build_messages(prompt, history),
+            "temperature": self.settings.ai_chat_temperature,
+            "stream": False,
+            "enable_thinking": self.settings.ai_chat_enable_thinking,
+        }
+        response = self._request_completion(payload)
+        choices = response.get("choices") or []
+        if not choices:
+            raise RuntimeError("AI service returned no choices")
 
-        answer_parts: List[str] = []
-        for chunk in stream:
-            if not chunk.choices:
-                continue
-            delta = chunk.choices[0].delta
-            content = getattr(delta, "content", None)
-            if content:
-                answer_parts.append(content)
-
-        answer = "".join(answer_parts).strip()
+        message = choices[0].get("message") or {}
+        answer = self._extract_text(message.get("content"))
         if not answer:
             raise RuntimeError("empty response from AI service")
 
         return {
             "answer": answer,
-            "model": self.settings.ai_chat_model,
+            "model": response.get("model") or self.settings.ai_chat_model,
         }
