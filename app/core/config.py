@@ -44,6 +44,12 @@ class Settings:
     ai_chat_enable_thinking: bool
     ai_chat_temperature: float
     ai_chat_max_history_messages: int
+    ai_chat_api_key: Optional[str]
+    ai_chat_base_url: str
+    ai_chat_model: str
+    ai_chat_enable_thinking: bool
+    ai_chat_temperature: float
+    ai_chat_max_history_messages: int
 
     @property
     def templates_dir(self) -> Path:
