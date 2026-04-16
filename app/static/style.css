@@ -902,6 +902,64 @@ p {
   line-height: 1.9;
 }
 
+.metric-tile__value--compact {
+  font-size: clamp(0.98rem, 1.25vw, 1.18rem) !important;
+  line-height: 1.45;
+  font-family: "IBM Plex Sans Local", "Noto Sans SC Local", sans-serif !important;
+  letter-spacing: 0;
+}
+
+.analytics-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.analytics-grid--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.analytics-grid--history {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.analytics-grid--history-detail {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.chart-card--wide {
+  grid-column: 1 / -1;
+}
+
+.surface-panel--analytics {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.chart-shell {
+  width: 100%;
+  min-height: 320px;
+}
+
+.chart-shell--short {
+  min-height: 280px;
+}
+
+.narrative-panel {
+  padding: 22px 24px;
+  border-radius: 22px;
+  border: 1px solid rgba(101, 153, 224, 0.14);
+  background:
+    radial-gradient(circle at top right, rgba(36, 180, 242, 0.10), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(244, 249, 255, 0.88) 100%);
+}
+
+.narrative-panel__text {
+  color: var(--ink);
+  font-size: 1.02rem;
+  line-height: 1.9;
+}
+
 .result-viewer {
   touch-action: pan-y;
 }
@@ -1234,6 +1292,7 @@ body.page-chat .site-header {
   padding-bottom: 36px;
 }
 
+.chat-app {
 .chat-app {
   display: grid;
   grid-template-columns: 340px minmax(0, 1fr);
@@ -1572,7 +1631,10 @@ body.page-chat .site-header {
 }
 
 .chat-dock {
+.chat-dock {
   position: sticky;
+  bottom: 0;
+  z-index: 12;
   bottom: 0;
   z-index: 12;
   display: grid;
