@@ -4,6 +4,7 @@ from typing import Any, Dict
 from app.core.config import Settings
 from app.services.audio_inference_service import AudioInferenceService
 from app.services.audio_service import AudioService
+from app.services.chat_service import ChatService
 from app.services.history_service import HistoryService
 from app.services.image_service import ImageService
 from app.services.result_service import ResultService
@@ -64,6 +65,7 @@ class ServiceContainer:
     image_service: ImageService
     video_service: VideoService
     audio_service: AudioService
+    chat_service: ChatService
 
 
 def build_services(settings: Settings) -> ServiceContainer:
@@ -82,6 +84,7 @@ def build_services(settings: Settings) -> ServiceContainer:
     image_service = ImageService(inference_service, history_service, result_service)
     video_service = VideoService(inference_service, history_service, result_service)
     audio_service = AudioService(audio_inference_service, history_service, result_service)
+    chat_service = ChatService(settings)
 
     return ServiceContainer(
         settings=settings,
@@ -92,4 +95,5 @@ def build_services(settings: Settings) -> ServiceContainer:
         image_service=image_service,
         video_service=video_service,
         audio_service=audio_service,
+        chat_service=chat_service,
     )

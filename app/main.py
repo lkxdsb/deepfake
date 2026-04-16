@@ -4,6 +4,7 @@ import mimetypes
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from app.api.routes_chat import router as chat_router
 from app.api.routes_demo import router as demo_router
 from app.api.routes_health import router as health_router
 from app.api.routes_history import router as history_router
@@ -56,6 +57,7 @@ if not settings.frontend_only:
     from app.api.routes_detect import router as detect_router
 
     app.include_router(detect_router)
+app.include_router(chat_router)
 app.include_router(history_router)
 app.include_router(demo_router)
 app.include_router(pages_router)

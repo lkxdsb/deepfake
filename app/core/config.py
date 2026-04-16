@@ -35,6 +35,12 @@ class Settings:
     audio_model_cache_dir: Optional[Path]
     audio_fake_threshold: float
     audio_sample_rate: int
+    ai_chat_api_key: Optional[str]
+    ai_chat_base_url: str
+    ai_chat_model: str
+    ai_chat_enable_thinking: bool
+    ai_chat_temperature: float
+    ai_chat_max_history_messages: int
 
     @property
     def templates_dir(self) -> Path:
@@ -118,6 +124,19 @@ def load_settings() -> Settings:
         audio_model_cache_dir=audio_model_cache_dir,
         audio_fake_threshold=float(os.getenv("AUDIO_FAKE_THRESHOLD", "0.5")),
         audio_sample_rate=int(os.getenv("AUDIO_SAMPLE_RATE", "16000")),
+        ai_chat_api_key=(
+            os.getenv("AI_CHAT_API_KEY")
+            or os.getenv("DASHSCOPE_API_KEY")
+            or os.getenv("OPENAI_API_KEY")
+        ),
+        ai_chat_base_url=os.getenv(
+            "AI_CHAT_BASE_URL",
+            "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        ),
+        ai_chat_model=os.getenv("AI_CHAT_MODEL", "qwen3.6-plus"),
+        ai_chat_enable_thinking=_env_bool("AI_CHAT_ENABLE_THINKING", True),
+        ai_chat_temperature=float(os.getenv("AI_CHAT_TEMPERATURE", "0.3")),
+        ai_chat_max_history_messages=int(os.getenv("AI_CHAT_MAX_HISTORY_MESSAGES", "6")),
     )
 
 

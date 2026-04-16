@@ -20,7 +20,12 @@ def page_index(request: Request, services: ServiceContainer = Depends(get_servic
     templates = get_templates(services)
     return templates.TemplateResponse(
         "index.html",
-        {"request": request, "demo_video": str(services.settings.demo_video_path.name)},
+        {
+            "request": request,
+            "demo_video": str(services.settings.demo_video_path.name),
+            "ai_chat_ready": services.chat_service.is_ready(),
+            "ai_chat_model": services.settings.ai_chat_model,
+        },
     )
 
 

@@ -607,6 +607,110 @@ p {
   gap: 22px;
 }
 
+.chat-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.chat-panel {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(244, 249, 255, 0.92) 100%);
+  box-shadow: var(--shadow);
+}
+
+.chat-panel--intro,
+.chat-panel--console {
+  padding: 24px;
+}
+
+.chat-panel--intro {
+  display: grid;
+  gap: 18px;
+}
+
+.chat-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chat-thread {
+  display: grid;
+  gap: 14px;
+  min-height: 420px;
+  max-height: 620px;
+  padding-right: 4px;
+  overflow-y: auto;
+}
+
+.chat-bubble {
+  max-width: min(92%, 760px);
+  padding: 16px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(127, 186, 255, 0.14);
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.chat-bubble--assistant {
+  justify-self: start;
+  border-top-left-radius: 8px;
+}
+
+.chat-bubble--user {
+  justify-self: end;
+  border-top-right-radius: 8px;
+  background: linear-gradient(135deg, rgba(81, 217, 255, 0.2) 0%, rgba(47, 183, 255, 0.16) 100%);
+  border-color: rgba(26, 168, 232, 0.2);
+}
+
+.chat-bubble__role {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: "IBM Plex Sans Local", "Segoe UI", sans-serif;
+}
+
+.chat-bubble p {
+  color: var(--ink);
+  white-space: pre-wrap;
+}
+
+.chat-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.chat-input {
+  width: 100%;
+  min-height: 120px;
+  padding: 14px;
+  resize: vertical;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(129, 186, 255, 0.22);
+  border-radius: var(--radius-md);
+}
+
+.chat-input:focus {
+  outline: none;
+  border-color: rgba(112, 227, 255, 0.5);
+  box-shadow: 0 0 0 4px rgba(112, 227, 255, 0.12);
+}
+
+.chat-form__footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+}
+
 .workbench-hero,
 .result-shell,
 .history-shell {
@@ -906,6 +1010,7 @@ p {
 
 @media (max-width: 1100px) {
   .hero,
+  .chat-layout,
   .evidence-layout,
   .method-layout,
   .workbench-layout,
@@ -963,6 +1068,10 @@ p {
     align-items: flex-start;
   }
 
+  .chat-form__footer {
+    grid-template-columns: 1fr;
+  }
+
   .result-command {
     align-items: start;
   }
@@ -1002,6 +1111,7 @@ p {
   }
 
   .hero__actions,
+  .chat-suggestions,
   .pager-toolbar,
   .table-links {
     flex-direction: column;
