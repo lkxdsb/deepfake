@@ -116,10 +116,42 @@ const restartButton = document.getElementById('quiz-restart');
 const optionsContainer = document.getElementById('quiz-options');
 const feedbackEl = document.getElementById('quiz-feedback');
 const summaryEl = document.getElementById('quiz-summary');
+const quizSidebar = document.querySelector('.quiz-sidebar');
+const quizHeroPanel = document.querySelector('.quiz-panel--hero');
+const quizQuestionPanel = document.querySelector('.quiz-panel--question');
+const desktopQuizMedia = window.matchMedia('(min-width: 1181px)');
 
 let currentIndex = -1;
 let score = 0;
 let locked = false;
+let quizLayoutSyncRaf = null;
+
+function syncQuizSidebarHeight() {
+  if (!quizSidebar || !quizHeroPanel || !quizQuestionPanel) {
+    return;
+  }
+
+  if (!desktopQuizMedia.matches) {
+    quizSidebar.style.height = '';
+    quizSidebar.style.maxHeight = '';
+    return;
+  }
+
+  if (quizLayoutSyncRaf !== null) {
+    cancelAnimationFrame(quizLayoutSyncRaf);
+  }
+
+  quizLayoutSyncRaf = requestAnimationFrame(() => {
+    const heroHeight = quizHeroPanel.getBoundingClientRect().height;
+    const questionHeight = quizQuestionPanel.getBoundingClientRect().height;
+    const stackGap = 14;
+    const extraHeight = 20;
+    const target = Math.ceil(heroHeight + questionHeight + stackGap + extraHeight);
+    quizSidebar.style.height = `${target}px`;
+    quizSidebar.style.maxHeight = `${target}px`;
+    quizLayoutSyncRaf = null;
+  });
+}
 
 function levelLabel(level) {
   if (level === 1) return 'L1 · 基础识别';
@@ -160,6 +192,7 @@ function resetQuiz() {
   document.getElementById('quiz-question-level').textContent = 'L1';
   document.getElementById('quiz-question-title').textContent = '点击开始后进入第一题。';
   updateProgress();
+  syncQuizSidebarHeight();
 }
 
 function renderQuestion() {
@@ -184,6 +217,8 @@ function renderQuestion() {
     button.addEventListener('click', () => selectOption(optionIndex));
     optionsContainer.appendChild(button);
   });
+
+  syncQuizSidebarHeight();
 }
 
 function selectOption(optionIndex) {
@@ -222,6 +257,8 @@ function selectOption(optionIndex) {
   } else {
     nextButton.textContent = '下一题';
   }
+
+  syncQuizSidebarHeight();
 }
 
 function getBadge() {
@@ -255,6 +292,7 @@ function showSummary() {
   document.getElementById('quiz-summary-text').textContent = badge.summary;
   document.getElementById('quiz-score').textContent = `${score} / ${total}`;
   document.getElementById('quiz-badge').textContent = badge.title;
+  syncQuizSidebarHeight();
 }
 
 startButton.addEventListener('click', () => {
@@ -272,7 +310,23 @@ nextButton.addEventListener('click', () => {
 });
 
 restartButton.addEventListener('click', resetQuiz);
+window.addEventListener('resize', syncQuizSidebarHeight);
+
+if (desktopQuizMedia.addEventListener) {
+  desktopQuizMedia.addEventListener('change', syncQuizSidebarHeight);
+} else if (desktopQuizMedia.addListener) {
+  desktopQuizMedia.addListener(syncQuizSidebarHeight);
+}
+
+if (window.ResizeObserver && quizHeroPanel && quizQuestionPanel) {
+  const quizLayoutObserver = new ResizeObserver(() => {
+    syncQuizSidebarHeight();
+  });
+  quizLayoutObserver.observe(quizHeroPanel);
+  quizLayoutObserver.observe(quizQuestionPanel);
+}
 
 resetQuiz();
+syncQuizSidebarHeight();
 </script>
 {% endblock %}

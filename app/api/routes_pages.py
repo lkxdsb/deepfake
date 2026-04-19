@@ -43,6 +43,12 @@ def page_index(request: Request, services: ServiceContainer = Depends(get_servic
     )
 
 
+@router.get("/welcome", response_class=HTMLResponse)
+def page_welcome(request: Request, services: ServiceContainer = Depends(get_services)):
+    templates = get_templates(services)
+    return templates.TemplateResponse("welcome.html", {"request": request})
+
+
 @router.get("/chat", response_class=HTMLResponse)
 def page_chat(request: Request, services: ServiceContainer = Depends(get_services)):
     templates = get_templates(services)

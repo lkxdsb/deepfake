@@ -1,0 +1,41 @@
+<svg width="1400" height="1400" viewBox="0 0 1400 1400" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Surface texture">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1400" y2="1400" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F1724"/>
+      <stop offset="1" stop-color="#182536"/>
+    </linearGradient>
+    <radialGradient id="orbA" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(280 300) rotate(32) scale(430 300)">
+      <stop stop-color="#4A678E" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#4A678E" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orbB" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1160 220) rotate(156) scale(360 250)">
+      <stop stop-color="#5A7BA8" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#5A7BA8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1400" height="1400" fill="url(#bg)"/>
+  <rect width="1400" height="1400" fill="url(#orbA)"/>
+  <rect width="1400" height="1400" fill="url(#orbB)"/>
+
+  <g opacity="0.25" stroke="#7D96B9">
+    <path d="M0 280H1400"/>
+    <path d="M0 420H1400"/>
+    <path d="M0 560H1400"/>
+    <path d="M0 700H1400"/>
+    <path d="M0 840H1400"/>
+    <path d="M0 980H1400"/>
+    <path d="M0 1120H1400"/>
+    <path d="M220 0V1400"/>
+    <path d="M420 0V1400"/>
+    <path d="M620 0V1400"/>
+    <path d="M820 0V1400"/>
+    <path d="M1020 0V1400"/>
+    <path d="M1220 0V1400"/>
+  </g>
+
+  <g opacity="0.3" stroke="#A7BCD8" stroke-width="1.5">
+    <path d="M140 1050C294 914 420 836 594 836C790 836 874 962 1060 962C1168 962 1264 926 1400 844"/>
+    <path d="M0 950C172 810 328 736 512 736C686 736 796 820 940 820C1094 820 1234 742 1400 628"/>
+  </g>
+</svg>

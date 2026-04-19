@@ -7,70 +7,132 @@
 <script defer src="/static/dashboard.js"></script>
 {% endblock %}
 {% block content %}
-<section class="hero">
+<section class="hero hero--focused hero--no-visual">
   <div class="hero__copy">
-    <p class="eyebrow">数字取证 · 比赛演示版</p>
-    <h1>多模态深度伪造检测平台</h1>
+    <p class="eyebrow">Competition Demo Flow</p>
+    <h1>先演示检测，再解释证据和方法</h1>
     <p class="hero__lede">
-      面向比赛展示与现场答辩的智能鉴伪工作站，覆盖图片、视频、音频三类样本，
-      以统一入口输出真假判定、可解释证据与历史记录。
+      这个版本把首页重心放在“最快跑通演示闭环”。
+      先进入检测工作台得到结论，再用结果页证据和历史趋势完成答辩解释。
     </p>
     <div class="hero__actions">
-      <a class="button button--primary" href="/detect/video">进入检测工作台</a>
-      <a class="button button--secondary" href="/chat">进入 AI 问答</a>
+      <a class="button button--primary" href="/detect/video">开始视频检测</a>
+      <a class="button button--secondary" href="/detect/image">开始图片检测</a>
       <button class="button button--ghost" type="button" onclick="runDemo('video')">一键运行示例</button>
     </div>
     <p id="demo-status" class="inline-status inline-status--muted">默认演示样例：{{ demo_video }}</p>
-    <div class="signal-strip">
-      <div class="signal-strip__item">
-        <span>03</span>
-        <strong>检测模态</strong>
-        <small>图片 / 视频 / 音频统一入口</small>
+
+    <div class="focus-route">
+      <div class="focus-route__item">
+        <span>Step 1</span>
+        <strong>进入检测页上传样本</strong>
       </div>
-      <div class="signal-strip__item">
-        <span>01</span>
-        <strong>结果视图</strong>
-        <small>预览、热力图、曲线与关键帧联动展示</small>
+      <div class="focus-route__connector" aria-hidden="true"></div>
+      <div class="focus-route__item">
+        <span>Step 2</span>
+        <strong>结果页讲结论和证据</strong>
       </div>
-      <div class="signal-strip__item">
-        <span>24H</span>
-        <strong>历史追踪</strong>
-        <small>记录任务摘要与批次明细，便于答辩复盘</small>
+      <div class="focus-route__connector" aria-hidden="true"></div>
+      <div class="focus-route__item">
+        <span>Step 3</span>
+        <strong>历史页展示真实性能轨迹</strong>
       </div>
     </div>
   </div>
-  <div class="hero__visual">
-    <div class="hero-visual__frame">
-      <img class="hero-visual__poster" src="/static/images/heatmap.webp" alt="Homepage hero poster">
-      <img src="/static/images/hero-forensics.jpg" alt="冷色数字取证风主视觉">
-    </div>
+
+</section>
+
+<section class="section-block section-block--journey">
+  <div class="section-heading">
+    <p class="eyebrow">Demo Journey</p>
+    <h2>把首页变成“演示操作台”，不是功能展板</h2>
+    <p>每一步都对应一个可点击入口，减少现场讲解时的跳转成本。</p>
+  </div>
+  <div class="journey-grid">
+    <article class="journey-card line-container">
+      <span class="journey-card__tag">01 · 检测入口</span>
+      <h3>图片 / 视频 / 音频</h3>
+      <p>优先建议视频检测用于答辩主流程，图片和音频用于补充说明。</p>
+      <div class="journey-card__actions">
+        <a class="button button--primary button--small" href="/detect/video">视频检测</a>
+        <a class="button button--ghost button--small" href="/detect/image">图片检测</a>
+        <a class="button button--ghost button--small" href="/detect/audio">音频检测</a>
+      </div>
+    </article>
+
+    <article class="journey-card line-container">
+      <span class="journey-card__tag">02 · 证据解释</span>
+      <h3>结果页证据链</h3>
+      <p>在同一页面讲清真假结论、置信度、关键帧、热力图和时序曲线。</p>
+      <div class="journey-card__actions">
+        <button class="button button--secondary button--small" type="button" onclick="runDemo('image')">运行图片示例</button>
+        <button class="button button--ghost button--small" type="button" onclick="runDemo('video')">运行视频示例</button>
+      </div>
+    </article>
+
+    <article class="journey-card line-container">
+      <span class="journey-card__tag">03 · 数据复盘</span>
+      <h3>历史批次 + 趋势图</h3>
+      <p>展示系统已经跑过的任务，让演示更像真实业务系统。</p>
+      <div class="journey-card__actions">
+        <a class="button button--secondary button--small" href="/history">查看历史中心</a>
+      </div>
+    </article>
   </div>
 </section>
 
 <section class="section-block section-block--modes">
   <div class="section-heading">
     <p class="eyebrow">Core Capabilities</p>
-    <h2>三种模态，一套取证流程</h2>
-    <p>首屏直接给评委看到系统能力边界、输入形式和输出证据，避免落入“功能很多但重点不清”的后台页面感。</p>
+    <h2>视频优先，图像与音频补位</h2>
+    <p>布局做了主次区分：把最适合现场展示的视频入口放到首位，并直接配证据示意。</p>
   </div>
-  <div class="mode-grid">
-    <article class="mode-card">
-      <p class="mode-card__index">01</p>
-      <h3>图片检测</h3>
-      <p>支持 jpg / jpeg / png 上传，输出真假判定、置信度与可解释热力图。</p>
-      <a class="text-link" href="/detect/image">进入图片检测</a>
-    </article>
-    <article class="mode-card">
-      <p class="mode-card__index">02</p>
-      <h3>视频检测</h3>
-      <p>支持单条与批量视频样本，输出视频级结论、关键帧与帧级概率曲线。</p>
+
+  <div class="mode-grid mode-grid--focus">
+    <article class="mode-card mode-card--focus-main line-container">
+      <p class="mode-card__index">Priority</p>
+      <h3>视频检测（建议主演示路径）</h3>
+      <p>支持单条与批量视频样本，输出视频级结论、关键帧和帧级概率曲线，信息完整、说服力强。</p>
+      <div class="priority-preview" aria-hidden="true">
+        <div class="priority-preview__top">
+          <span>Video In</span>
+          <span>Frame Scan</span>
+          <span>Evidence Out</span>
+        </div>
+        <div class="priority-preview__stage">
+          <div class="priority-preview__node">上传样本</div>
+          <div class="priority-preview__arrow"></div>
+          <div class="priority-preview__node">逐帧检测</div>
+          <div class="priority-preview__arrow"></div>
+          <div class="priority-preview__node">证据输出</div>
+        </div>
+        <div class="priority-preview__chart">
+          <span></span>
+        </div>
+      </div>
       <a class="text-link" href="/detect/video">进入视频检测</a>
     </article>
-    <article class="mode-card">
-      <p class="mode-card__index">03</p>
+
+    <article class="mode-card line-container">
+      <p class="mode-card__index">Image</p>
+      <h3>图片检测</h3>
+      <p>用于快速演示空间热区和可解释可视化。</p>
+      <a class="text-link" href="/detect/image">进入图片检测</a>
+    </article>
+
+    <article class="mode-card line-container">
+      <p class="mode-card__index">Audio</p>
       <h3>音频检测</h3>
-      <p>基于音频 deepfake 模型输出真假、阈值比较与伪造概率说明。</p>
+      <p>用于补充“多模态”能力，适合答辩加分场景。</p>
       <a class="text-link" href="/detect/audio">进入音频检测</a>
+    </article>
+
+    <article class="mode-card mode-card--evidence line-container">
+      <p class="mode-card__index">Evidence</p>
+      <h3>结果页证据链预览</h3>
+      <p>结论、置信度、热力图、关键帧、曲线在一个页面联动，便于讲故事。</p>
+      <img class="mode-card__visual" src="/static/images/method-teaser.png" alt="结果证据链示意">
+      <a class="text-link" href="/history">查看历史记录</a>
     </article>
   </div>
 </section>
@@ -78,9 +140,10 @@
 <section class="section-block overview-section">
   <div class="section-heading">
     <p class="eyebrow">Live Overview</p>
-    <h2>把真实历史数据直接放进答辩首页</h2>
-    <p>这里不展示虚构跑分，只展示平台已经记录过的检测历史，让首页看起来像真实工作台而不是静态展板。</p>
+    <h2>真实历史数据前置，强调“已跑通过”</h2>
+    <p>这里不展示虚构跑分，只展示平台已有任务统计，帮助你在答辩中快速建立可信度。</p>
   </div>
+
   <div class="metric-band metric-band--overview">
     <div class="metric-tile">
       <span>累计任务数</span>
@@ -99,22 +162,24 @@
       <strong class="metric-tile__value metric-tile__value--compact">{{ history_summary.latest_created_at or '暂无历史' }}</strong>
     </div>
   </div>
+
   <div class="analytics-grid analytics-grid--two">
     <article class="surface-panel surface-panel--analytics">
       <div class="panel-heading">
         <h3>最近 10 个批次可疑率趋势</h3>
-        <p>突出系统近期跑过的真实任务走势，适合答辩时快速说明平台不是一次性演示页面。</p>
+        <p>直接回答“系统最近表现如何”。</p>
       </div>
       {% if history_summary.recent_batches and history_summary.recent_batches|length > 0 %}
         <div id="home-trend-chart" class="chart-shell"></div>
       {% else %}
-        <p class="inline-note">暂无历史记录，运行一次图片、视频或音频检测后这里会自动出现真实趋势图。</p>
+        <p class="inline-note">暂无历史记录，运行一次检测后会自动生成趋势图。</p>
       {% endif %}
     </article>
+
     <article class="surface-panel surface-panel--analytics">
       <div class="panel-heading">
         <h3>模态样本占比</h3>
-        <p>展示图片、视频、音频三类历史样本分布，方便说明系统覆盖边界。</p>
+        <p>展示图片、视频、音频历史样本分布。</p>
       </div>
       {% if history_summary.modalities and history_summary.modalities|length > 0 %}
         <div id="home-mode-share-chart" class="chart-shell"></div>
@@ -125,103 +190,37 @@
   </div>
 </section>
 
-<section class="section-block evidence-section">
-  <div class="section-heading">
-    <p class="eyebrow">Evidence View</p>
-    <h2>把结果页做成“证据链展示”而不是纯文本回显</h2>
-    <p>平台默认突出示例画面、风险判定、空间热区和时间曲线，让真假结论有直观依据。</p>
-  </div>
-  <div class="evidence-layout">
-    <div class="evidence-visual">
-      <img src="/static/images/demo-evidence.png" alt="系统检测示例">
-    </div>
-    <div class="evidence-copy">
-      <div class="info-stack">
-        <div>
-          <span class="info-stack__label">取证结论</span>
-          <strong>真假判定 + 置信度</strong>
-        </div>
-        <div>
-          <span class="info-stack__label">解释依据</span>
-          <strong>热力图、关键帧、概率曲线联动</strong>
-        </div>
-        <div>
-          <span class="info-stack__label">演示方式</span>
-          <strong>支持单样本与批次翻页答辩展示</strong>
-        </div>
-      </div>
-      <a class="button button--secondary" href="/history">查看历史记录</a>
-    </div>
-  </div>
-</section>
-
-<section class="section-block method-section">
-  <div class="section-heading">
-    <p class="eyebrow">Model Basis</p>
-    <h2>方法亮点与系统能力相互支撑</h2>
-    <p>现有模型研究图示继续保留，但在页面中作为“可信依据”区出现，而不是把首页做成论文海报。</p>
-  </div>
-  <div class="method-layout">
-    <div class="method-copy">
-      <div class="spec-list">
-        <div>
-          <strong>视觉主线</strong>
-          <span>强调深伪检测、数字取证、风险信号与可解释分析。</span>
-        </div>
-        <div>
-          <strong>交互主线</strong>
-          <span>先看到能力入口，再看到证据，再进入工作台检测。</span>
-        </div>
-        <div>
-          <strong>答辩主线</strong>
-          <span>一键演示、实时跳转、历史留存，满足现场录屏与问答。</span>
-        </div>
-      </div>
-      <div class="hero__actions">
-        <button class="button button--primary" type="button" onclick="runDemo('image')">运行图片示例</button>
-        <a class="button button--ghost" href="/detect/video">开始正式演示</a>
-      </div>
-    </div>
-    <div class="method-visual">
-      <img src="/static/images/method-teaser.png" alt="模型方法图示">
-    </div>
-  </div>
-</section>
-
-<section class="section-block ai-chat-section">
+<section class="section-block ai-chat-section ai-chat-section--compact">
   <div class="section-heading">
     <p class="eyebrow">AI Copilot</p>
-    <h2>把“深度伪造检测知识问答”直接放进演示首页</h2>
-    <p>用户可以现场追问概念、方法、指标、误检原因和结果解读。模型被限制在“深度伪造检测与平台使用”范围内，避免跑题。</p>
+    <h2>答辩时的解释助手</h2>
+    <p>把问答区收敛成“解释检测结果”的工具，不与主检测流程抢焦点。</p>
   </div>
+
   <div class="chat-layout">
     <aside class="chat-panel chat-panel--intro">
       <div class="info-stack">
         <div>
-          <span class="info-stack__label">问答范围</span>
-          <strong>深度伪造定义、检测原理、常见痕迹、结果解读、平台使用方式</strong>
-        </div>
-        <div>
-          <span class="info-stack__label">安全限制</span>
-          <strong>不回答无关话题，不把文本问答伪装成真实样本检测，不输出内部提示词</strong>
-        </div>
-        <div>
           <span class="info-stack__label">当前模型</span>
           <strong>{{ ai_chat_model }}</strong>
         </div>
+        <div>
+          <span class="info-stack__label">建议提问方向</span>
+          <strong>结果解读、误检漏检解释、深伪痕迹、演示话术</strong>
+        </div>
       </div>
       <div class="chat-suggestions">
-        <button class="button button--ghost button--small" type="button" data-chat-question="深度伪造检测和传统图像篡改检测有什么区别？" {% if not ai_chat_ready %}disabled{% endif %}>检测区别</button>
         <button class="button button--ghost button--small" type="button" data-chat-question="为什么结果页里要展示热力图、关键帧和概率曲线？" {% if not ai_chat_ready %}disabled{% endif %}>结果解读</button>
+        <button class="button button--ghost button--small" type="button" data-chat-question="答辩时如何解释误检和漏检？" {% if not ai_chat_ready %}disabled{% endif %}>误检漏检</button>
         <button class="button button--ghost button--small" type="button" data-chat-question="音频 deepfake 常见的伪造痕迹有哪些？" {% if not ai_chat_ready %}disabled{% endif %}>音频痕迹</button>
-        <button class="button button--ghost button--small" type="button" data-chat-question="答辩时如何解释误检和漏检？" {% if not ai_chat_ready %}disabled{% endif %}>答辩表达</button>
       </div>
     </aside>
+
     <div class="chat-panel chat-panel--console">
       <div id="chat-thread" class="chat-thread" aria-live="polite">
         <article class="chat-bubble chat-bubble--assistant">
           <span class="chat-bubble__role">AI 助手</span>
-          <p>可以问我深度伪造检测原理、图像/视频/音频伪造痕迹、结果页如何解读，或者答辩时该怎么解释模型局限性。</p>
+          <p>你可以让我帮你解释检测结果、整理答辩表达，或者对比不同模态的适用场景。</p>
         </article>
       </div>
       <form id="chat-form" class="chat-form">
@@ -249,23 +248,25 @@
   </div>
 </section>
 
-<section class="section-block edu-launch">
+<section class="section-block section-block--readiness">
   <div class="section-heading">
-    <p class="eyebrow">Media Literacy</p>
-    <h2>新增科普频道与反诈闯关，把“能检测”扩展成“会防骗”</h2>
-    <p>除了模型检测，现在首页也可以直接进入 deepfake / AI 换脸 / AI 换音知识页，并通过闯关题练习风险判断。</p>
+    <p class="eyebrow">Ready For Defense</p>
+    <h2>最后补充：安全科普与反诈闯关</h2>
+    <p>当你完成主检测演示后，再进入科普和闯关区，展示项目的社会价值和教育价值。</p>
   </div>
-  <div class="edu-launch__grid">
-    <article class="edu-launch__panel">
-      <span class="edu-launch__tag">科普频道</span>
-      <h3>讲概念、讲套路、讲素材来源</h3>
-      <p>集中解释 deepfake、AI 换脸、AI 换音的边界，整理常见骗局和合法素材渠道。</p>
+
+  <div class="readiness-grid">
+    <article class="readiness-card line-container">
+      <span class="readiness-card__tag">科普频道</span>
+      <h3>讲概念边界、风险场景和验证步骤</h3>
+      <p>用于回答“项目除了检测，还有什么实用价值”。</p>
       <a class="button button--secondary" href="/education">进入科普频道</a>
     </article>
-    <article class="edu-launch__panel">
-      <span class="edu-launch__tag">反诈闯关</span>
-      <h3>用多道题训练仿骗意识</h3>
-      <p>覆盖熟人求助、名人带货、仿声来电、绕审批付款和版权使用意识等情景。</p>
+
+    <article class="readiness-card line-container">
+      <span class="readiness-card__tag">反诈闯关</span>
+      <h3>用情景题训练风险判断</h3>
+      <p>覆盖仿声来电、熟人求助、名人带货等真实场景。</p>
       <a class="button button--primary" href="/quiz">开始闯关答题</a>
     </article>
   </div>
@@ -273,13 +274,13 @@
 
 <section class="section-block final-cta">
   <div>
-    <p class="eyebrow">Ready For Demo</p>
-    <h2>从上传到结论，全链路在一个界面里讲清楚。</h2>
+    <p class="eyebrow">Start Now</p>
+    <h2>优先跑通一个视频样本，再扩展到多模态。</h2>
   </div>
   <div class="hero__actions">
-    <a class="button button--primary" href="/detect/image">开始检测</a>
-    <a class="button button--secondary" href="/chat">AI 问答</a>
-    <a class="button button--ghost" href="/history">查看历史</a>
+    <a class="button button--primary" href="/detect/video">开始检测</a>
+    <a class="button button--secondary" href="/history">查看历史</a>
+    <a class="button button--ghost" href="/chat">AI 问答</a>
   </div>
 </section>
 
@@ -291,8 +292,11 @@ const maxClientHistory = 6;
 
 async function runDemo(mode) {
   const status = document.getElementById('demo-status');
-  status.textContent = '示例任务启动中，请稍候...';
-  status.className = 'inline-status inline-status--pending';
+  if (status) {
+    status.textContent = '示例任务启动中，请稍候...';
+    status.className = 'inline-status inline-status--pending';
+  }
+
   try {
     const res = await fetch(`/api/demo/run?mode=${mode}`, { method: 'POST' });
     const data = await res.json();
@@ -301,19 +305,28 @@ async function runDemo(mode) {
     }
     window.location.href = `/results/${data.data.task_id}`;
   } catch (err) {
-    status.textContent = `示例运行失败：${err.message}`;
-    status.className = 'inline-status inline-status--error';
+    if (status) {
+      status.textContent = `示例运行失败：${err.message}`;
+      status.className = 'inline-status inline-status--error';
+    }
   }
 }
 
 function setChatStatus(text, type = 'muted') {
   const status = document.getElementById('chat-status');
+  if (!status) {
+    return;
+  }
   status.textContent = text;
   status.className = `inline-status inline-status--${type}`;
 }
 
 function appendChatBubble(role, text) {
   const thread = document.getElementById('chat-thread');
+  if (!thread) {
+    return;
+  }
+
   const bubble = document.createElement('article');
   bubble.className = `chat-bubble chat-bubble--${role}`;
 
@@ -341,12 +354,18 @@ function toggleChatSubmitting(isSubmitting) {
   const input = document.getElementById('chat-input');
   const submit = document.getElementById('chat-submit');
   const quickButtons = document.querySelectorAll('[data-chat-question]');
-  input.disabled = isSubmitting || !chatReady;
-  submit.disabled = isSubmitting || !chatReady;
+
+  if (input) {
+    input.disabled = isSubmitting || !chatReady;
+  }
+  if (submit) {
+    submit.disabled = isSubmitting || !chatReady;
+    submit.textContent = isSubmitting ? '思考中...' : '发送提问';
+  }
+
   quickButtons.forEach((button) => {
-    button.disabled = isSubmitting;
+    button.disabled = isSubmitting || !chatReady;
   });
-  submit.textContent = isSubmitting ? '思考中...' : '发送提问';
 }
 
 async function askAi(question) {
@@ -390,20 +409,31 @@ async function askAi(question) {
     appendChatBubble('assistant', '当前问答服务不可用，请稍后重试或检查后端配置。');
     setChatStatus(`提问失败：${err.message}`, 'error');
   } finally {
-    document.getElementById('chat-input').value = '';
+    const input = document.getElementById('chat-input');
+    if (input) {
+      input.value = '';
+    }
     toggleChatSubmitting(false);
   }
 }
 
-document.getElementById('chat-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  await askAi(document.getElementById('chat-input').value);
-});
+const chatForm = document.getElementById('chat-form');
+if (chatForm) {
+  chatForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const input = document.getElementById('chat-input');
+    await askAi(input ? input.value : '');
+  });
+}
 
 document.querySelectorAll('[data-chat-question]').forEach((button) => {
   button.addEventListener('click', async () => {
-    document.getElementById('chat-input').value = button.dataset.chatQuestion || '';
-    await askAi(button.dataset.chatQuestion || '');
+    const question = button.dataset.chatQuestion || '';
+    const input = document.getElementById('chat-input');
+    if (input) {
+      input.value = question;
+    }
+    await askAi(question);
   });
 });
 
@@ -411,14 +441,22 @@ window.addEventListener('DOMContentLoaded', () => {
   if (!window.DeepfakeViz) {
     return;
   }
-  DeepfakeViz.initBatchTrendChart(
-    document.getElementById('home-trend-chart'),
-    historySummary.recent_batches || [],
-  );
-  DeepfakeViz.initModeShareChart(
-    document.getElementById('home-mode-share-chart'),
-    historySummary.modalities || [],
-  );
+
+  const trendEl = document.getElementById('home-trend-chart');
+  if (trendEl) {
+    DeepfakeViz.initBatchTrendChart(
+      trendEl,
+      historySummary.recent_batches || [],
+    );
+  }
+
+  const modeShareEl = document.getElementById('home-mode-share-chart');
+  if (modeShareEl) {
+    DeepfakeViz.initModeShareChart(
+      modeShareEl,
+      historySummary.modalities || [],
+    );
+  }
 });
 </script>
 {% endblock %}

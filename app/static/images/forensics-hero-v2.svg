@@ -1,0 +1,71 @@
+<svg width="1600" height="1080" viewBox="0 0 1600 1080" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Forensics hero">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="1080" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F7F8FA"/>
+      <stop offset="1" stop-color="#EAEDF2"/>
+    </linearGradient>
+    <radialGradient id="glowA" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(280 160) rotate(17) scale(420 260)">
+      <stop stop-color="#DFE9F7"/>
+      <stop offset="1" stop-color="#DFE9F7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowB" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1320 130) rotate(163) scale(360 240)">
+      <stop stop-color="#DDE7F4"/>
+      <stop offset="1" stop-color="#DDE7F4" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="600" y="146" width="864" height="662" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="30" stdDeviation="26" flood-color="#A8B6CA" flood-opacity="0.32"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="1080" fill="url(#bg)"/>
+  <rect width="1600" height="1080" fill="url(#glowA)"/>
+  <rect width="1600" height="1080" fill="url(#glowB)"/>
+
+  <g opacity="0.52">
+    <path d="M0 728H1600" stroke="#D5DDE8"/>
+    <path d="M0 786H1600" stroke="#D5DDE8"/>
+    <path d="M0 844H1600" stroke="#D5DDE8"/>
+    <path d="M0 902H1600" stroke="#D5DDE8"/>
+    <path d="M0 960H1600" stroke="#D5DDE8"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="678" y="224" width="708" height="510" rx="28" fill="#FFFFFF"/>
+    <rect x="678.5" y="224.5" width="707" height="509" rx="27.5" stroke="#DBE1EA"/>
+  </g>
+
+  <rect x="734" y="278" width="230" height="16" rx="8" fill="#E7ECF4"/>
+  <rect x="734" y="306" width="340" height="12" rx="6" fill="#EEF2F7"/>
+
+  <rect x="734" y="356" width="286" height="330" rx="20" fill="#F7F9FC" stroke="#E3E8F0"/>
+  <rect x="760" y="388" width="234" height="150" rx="14" fill="#E8EEF7"/>
+  <path d="M782 517C804 498 830 486 862 486C907 486 932 525 972 525" stroke="#7F96B5" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="840" cy="446" r="20" fill="#BBC9DC"/>
+  <rect x="760" y="566" width="196" height="10" rx="5" fill="#DEE6F1"/>
+  <rect x="760" y="586" width="150" height="10" rx="5" fill="#E6ECF5"/>
+
+  <rect x="1044" y="356" width="304" height="160" rx="20" fill="#F7F9FC" stroke="#E3E8F0"/>
+  <path d="M1070 474H1322" stroke="#E3E8F0" stroke-width="2"/>
+  <path d="M1086 454L1120 430L1150 444L1188 408L1222 422L1260 392L1304 418" stroke="#4D6F9B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="1044" y="536" width="304" height="150" rx="20" fill="#F7F9FC" stroke="#E3E8F0"/>
+  <rect x="1070" y="570" width="72" height="84" rx="12" fill="#CAD6E5"/>
+  <rect x="1158" y="548" width="72" height="106" rx="12" fill="#B8C8DC"/>
+  <rect x="1246" y="590" width="72" height="64" rx="12" fill="#D6DFEB"/>
+
+  <rect x="200" y="242" width="360" height="234" rx="26" fill="#FFFFFF" stroke="#DBE1EA"/>
+  <rect x="230" y="286" width="124" height="12" rx="6" fill="#DCE4F0"/>
+  <rect x="230" y="310" width="220" height="10" rx="5" fill="#E5EBF4"/>
+  <rect x="230" y="350" width="300" height="18" rx="9" fill="#EDF2F8"/>
+  <rect x="230" y="380" width="272" height="18" rx="9" fill="#EDF2F8"/>
+  <rect x="230" y="410" width="238" height="18" rx="9" fill="#EDF2F8"/>
+
+  <rect x="154" y="540" width="470" height="246" rx="26" fill="#FFFFFF" stroke="#DBE1EA"/>
+  <rect x="190" y="580" width="150" height="12" rx="6" fill="#D9E3F0"/>
+  <circle cx="226" cy="648" r="26" fill="#C8D5E6"/>
+  <rect x="268" y="632" width="178" height="12" rx="6" fill="#E1E8F2"/>
+  <rect x="268" y="654" width="120" height="10" rx="5" fill="#EBF0F7"/>
+  <circle cx="226" cy="716" r="26" fill="#D5DFEB"/>
+  <rect x="268" y="700" width="204" height="12" rx="6" fill="#E1E8F2"/>
+  <rect x="268" y="722" width="144" height="10" rx="5" fill="#EBF0F7"/>
+</svg>
