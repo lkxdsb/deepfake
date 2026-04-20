@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}AI问答 - 多模态深度伪造检测平台{% endblock %}
+{% block title %}深度伪造检测问答 - 灵眸鉴真{% endblock %}
 {% block body_class %}page-chat{% endblock %}
 {% block main_class %}site-main--chat{% endblock %}
 {% block content %}
@@ -7,14 +7,13 @@
   <aside class="chat-sidebar">
     <div class="chat-sidebar__brand">
       <p class="eyebrow">Deepfake Copilot</p>
-      <h1>AI问答</h1>
+      <h1>深度伪造检测问答</h1>
       <p>面向深度伪造检测场景的专用知识问答。</p>
     </div>
 
     <a class="chat-sidebar__back" href="/">返回首页</a>
 
     <div class="chat-sidebar__scope">
-      <span class="chat-sidebar__scope-label">当前范围</span>
       <strong>检测原理、异常迹象、结果解读、答辩表达</strong>
       <p>不把文本问答伪装成实时检测，也不回答与深度伪造无关的话题。</p>
     </div>
@@ -22,9 +21,9 @@
     <div class="chat-sidebar__section">
       <span class="chat-sidebar__label">快捷问题</span>
       <div class="chat-sidebar__prompts">
-        <button class="chat-sidebar__prompt" type="button" data-chat-question="深度伪造检测和传统图像篡改检测有什么区别？">深伪检测和图像篡改检测有什么区别</button>
-        <button class="chat-sidebar__prompt" type="button" data-chat-question="为什么视频 deepfake 检测不能只看单帧？">为什么视频检测不能只看单帧</button>
-        <button class="chat-sidebar__prompt" type="button" data-chat-question="为什么结果页里要展示热力图、关键帧和概率曲线？">为什么结果页要展示热力图、关键帧和概率曲线</button>
+        <button class="chat-sidebar__prompt" type="button" data-chat-question="深伪检测和图像篡改检测有什么区别？">深伪检测和图像篡改检测有什么区别</button>
+        <button class="chat-sidebar__prompt" type="button" data-chat-question="为什么视频检测不能只看单帧？">为什么视频检测不能只看单帧</button>
+        <button class="chat-sidebar__prompt" type="button" data-chat-question="为什么结果页要展示热力图、关键帧和概率曲线？">为什么结果页要展示热力图、关键帧和概率曲线</button>
         <button class="chat-sidebar__prompt" type="button" data-chat-question="答辩时如何解释误检和漏检？">答辩时怎么解释误检和漏检</button>
       </div>
     </div>
@@ -36,15 +35,6 @@
   </aside>
 
   <div class="chat-main">
-    <header class="chat-main__header">
-      <div class="chat-main__intro">
-        <span class="chat-main__kicker">Deepfake Detection Copilot</span>
-        <strong>深度伪造检测问答</strong>
-        <p>聚焦检测原理、异常迹象、结果解读与答辩表达，按聊天界面的方式持续追问。</p>
-      </div>
-      <span class="chat-main__badge">{% if ai_chat_ready %}Ready{% else %}Offline{% endif %}</span>
-    </header>
-
     <div id="chat-thread" class="chat-canvas" aria-live="polite">
       <section id="chat-empty" class="chat-empty">
         <p class="chat-empty__eyebrow">Start A Conversation</p>

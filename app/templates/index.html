@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}首页 - 多模态深度伪造检测平台{% endblock %}
+{% block title %}首页 - 灵眸鉴真{% endblock %}
 {% block body_class %}page-home page-home-v2{% endblock %}
 {% block main_class %}site-main--home homev2-main{% endblock %}
 {% block content %}
@@ -15,10 +15,11 @@
 <section class="homev2-hero line-container">
   <div class="homev2-hero__copy">
     <p class="homev2-eyebrow">专业 · 可解释 · 值得信任</p>
-    <h1>检测图像、视频和音频中的伪造痕迹</h1>
+    <h1>灵眸鉴真</h1>
     <p class="homev2-lede">
-      多模态深度伪造检测平台，通过图像、视频与音频的协同分析，
-      为您提供风险评分、证据解释与报告导出，助力安全审核与真相判断。
+      基于 CASE + Bi-ST 与 XLS-R-2B 的图像、视频、音频一体化深伪检测系统，
+      通过多模态协同分析输出风险评分、关键证据解释与检测报告，
+      适用于内容安全治理、媒体真实性核验、远程身份核验等多个方向
     </p>
     <div class="homev2-actions">
       <a class="button button--primary" href="/detect/video">开始检测</a>
@@ -31,9 +32,9 @@
     <div class="homev2-result__head">
       <div>
         <p>检测结果</p>
-        <strong>{{ "%.1f"|format(suspicious_rate) }}%</strong>
+        <strong>92.4%</strong>
       </div>
-      <span class="homev2-risk">{{ risk_label }}</span>
+      <span class="homev2-risk">高风险</span>
     </div>
 
     <div class="homev2-result__body">
@@ -74,6 +75,7 @@
       <span><strong>检测时间</strong> {{ history_summary.latest_created_at or "暂无历史记录" }}</span>
     </div>
   </article>
+
 </section>
 
 <section class="homev2-strip">
@@ -114,22 +116,22 @@
   <div class="homev2-entry-grid">
     <article class="homev2-entry">
       <h3>图片检测</h3>
-      <p>分析人脸、纹理、光照等，发现伪造痕迹。</p>
+      <p>分析人脸、纹理等，发现伪造痕迹。</p>
       <a href="/detect/image">立即检测</a>
     </article>
     <article class="homev2-entry">
       <h3>视频检测</h3>
-      <p>时序异常、帧级分析与音画一致性校验。</p>
+      <p>时序异常、帧级分析与一致性校验。</p>
       <a href="/detect/video">立即检测</a>
     </article>
     <article class="homev2-entry">
       <h3>音频检测</h3>
-      <p>检测合成语音与声纹篡改，追踪异常频谱。</p>
+      <p>检测合成语音与声纹篡改。</p>
       <a href="/detect/audio">立即检测</a>
     </article>
     <article class="homev2-entry">
       <h3>历史记录与报告</h3>
-      <p>查看历史批次与导出结果，支持审计复核。</p>
+      <p>查看历史批次与导出结果。</p>
       <a href="/history">查看记录</a>
     </article>
   </div>
@@ -181,6 +183,10 @@
       <p>保留完整记录，支持报告导出与安全审计。</p>
     </article>
   </div>
+  <figure class="homev2-trust-figure">
+    <img src="/static/images/trust-method-compare.png" alt="Method comparison diagram">
+    <figcaption>CASE + temporal modeling + CLIP alignment provide stronger evidence than frame-only baselines.</figcaption>
+  </figure>
 </section>
 
 <script>

@@ -1,14 +1,14 @@
 {% extends "base.html" %}
-{% block title %}反诈闯关 - 多模态深度伪造检测平台{% endblock %}
+{% block title %}反诈闯关 - 灵眸鉴真{% endblock %}
 {% block body_class %}page-quiz{% endblock %}
 {% block main_class %}site-main--quiz{% endblock %}
 {% block content %}
 <section class="quiz-shell">
   <aside class="quiz-sidebar">
     <div class="quiz-sidebar__head">
-      <p class="eyebrow">Awareness Challenge</p>
+      <p class="eyebrow">Anti-Scam Drill</p>
       <h1>反诈闯关</h1>
-      <p>用情境题练出对 deepfake、AI 换脸、AI 换音的识别和复核习惯。</p>
+      <p>把“像不像真的”换成“我会不会核验”，用真实诈骗情境练习识别、暂停和复核。</p>
     </div>
     <div class="quiz-sidebar__stats">
       <div>
@@ -19,9 +19,8 @@
         <span>题量</span>
         <strong>{{ quiz_questions|length }} 题</strong>
       </div>
-      <div>
-        <span>重点</span>
-        <strong>身份核验 > 视觉直觉</strong>
+      <div class="quiz-sidebar__stat quiz-sidebar__stat--title-only">
+        <span>核心能力</span>
       </div>
     </div>
     <div class="quiz-levels">
@@ -40,8 +39,8 @@
     </div>
     <div class="quiz-sidebar__mission">
       <span>通关准则</span>
-      <strong>不要凭“像不像”下判断，先做身份核验，再做换渠道复核。</strong>
-      <p>每一题都会解释为什么危险，重点不是记答案，而是记流程。</p>
+      <strong>涉及转账、验证码、下载软件、屏幕共享时，一律先停下来，再换渠道确认真人身份。</strong>
+      <p>重点不是背答案，而是把“暂停、换渠道、走流程”练成默认动作。</p>
     </div>
     <a class="button button--ghost button--full" href="/education">先看科普频道</a>
   </aside>
@@ -49,9 +48,9 @@
   <div class="quiz-main">
     <section class="quiz-panel quiz-panel--hero">
       <div>
-        <p class="quiz-panel__eyebrow">Stage Progress</p>
-        <h2>每答一题，系统都会告诉你为什么。</h2>
-        <p class="quiz-panel__lede">把“看起来像假的”变成“我知道该怎么核验”。</p>
+        <p class="quiz-panel__eyebrow">Drill Progress</p>
+        <h2>每答一题，都会帮你建立一次防骗动作。</h2>
+        <p class="quiz-panel__lede">目标不是猜真假，而是在高压场景里依然知道该先做什么。</p>
       </div>
       <div class="quiz-progress">
         <div class="quiz-progress__bar">
@@ -63,9 +62,9 @@
         </div>
       </div>
       <div class="quiz-stage-strip">
-        <span>观察异常</span>
-        <span>换渠道复核</span>
-        <span>拒绝被催促</span>
+        <span>先暂停</span>
+        <span>再核验</span>
+        <span>后处置</span>
       </div>
     </section>
 
@@ -99,7 +98,7 @@
         </div>
         <div>
           <span>建议动作</span>
-          <strong>把“换渠道复核”变成默认动作</strong>
+          <strong>把“独立核验身份”变成默认动作</strong>
         </div>
       </div>
     </section>
@@ -116,42 +115,10 @@ const restartButton = document.getElementById('quiz-restart');
 const optionsContainer = document.getElementById('quiz-options');
 const feedbackEl = document.getElementById('quiz-feedback');
 const summaryEl = document.getElementById('quiz-summary');
-const quizSidebar = document.querySelector('.quiz-sidebar');
-const quizHeroPanel = document.querySelector('.quiz-panel--hero');
-const quizQuestionPanel = document.querySelector('.quiz-panel--question');
-const desktopQuizMedia = window.matchMedia('(min-width: 1181px)');
 
 let currentIndex = -1;
 let score = 0;
 let locked = false;
-let quizLayoutSyncRaf = null;
-
-function syncQuizSidebarHeight() {
-  if (!quizSidebar || !quizHeroPanel || !quizQuestionPanel) {
-    return;
-  }
-
-  if (!desktopQuizMedia.matches) {
-    quizSidebar.style.height = '';
-    quizSidebar.style.maxHeight = '';
-    return;
-  }
-
-  if (quizLayoutSyncRaf !== null) {
-    cancelAnimationFrame(quizLayoutSyncRaf);
-  }
-
-  quizLayoutSyncRaf = requestAnimationFrame(() => {
-    const heroHeight = quizHeroPanel.getBoundingClientRect().height;
-    const questionHeight = quizQuestionPanel.getBoundingClientRect().height;
-    const stackGap = 14;
-    const extraHeight = 20;
-    const target = Math.ceil(heroHeight + questionHeight + stackGap + extraHeight);
-    quizSidebar.style.height = `${target}px`;
-    quizSidebar.style.maxHeight = `${target}px`;
-    quizLayoutSyncRaf = null;
-  });
-}
 
 function levelLabel(level) {
   if (level === 1) return 'L1 · 基础识别';
@@ -192,7 +159,6 @@ function resetQuiz() {
   document.getElementById('quiz-question-level').textContent = 'L1';
   document.getElementById('quiz-question-title').textContent = '点击开始后进入第一题。';
   updateProgress();
-  syncQuizSidebarHeight();
 }
 
 function renderQuestion() {
@@ -217,8 +183,6 @@ function renderQuestion() {
     button.addEventListener('click', () => selectOption(optionIndex));
     optionsContainer.appendChild(button);
   });
-
-  syncQuizSidebarHeight();
 }
 
 function selectOption(optionIndex) {
@@ -257,8 +221,6 @@ function selectOption(optionIndex) {
   } else {
     nextButton.textContent = '下一题';
   }
-
-  syncQuizSidebarHeight();
 }
 
 function getBadge() {
@@ -292,7 +254,6 @@ function showSummary() {
   document.getElementById('quiz-summary-text').textContent = badge.summary;
   document.getElementById('quiz-score').textContent = `${score} / ${total}`;
   document.getElementById('quiz-badge').textContent = badge.title;
-  syncQuizSidebarHeight();
 }
 
 startButton.addEventListener('click', () => {
@@ -310,23 +271,7 @@ nextButton.addEventListener('click', () => {
 });
 
 restartButton.addEventListener('click', resetQuiz);
-window.addEventListener('resize', syncQuizSidebarHeight);
-
-if (desktopQuizMedia.addEventListener) {
-  desktopQuizMedia.addEventListener('change', syncQuizSidebarHeight);
-} else if (desktopQuizMedia.addListener) {
-  desktopQuizMedia.addListener(syncQuizSidebarHeight);
-}
-
-if (window.ResizeObserver && quizHeroPanel && quizQuestionPanel) {
-  const quizLayoutObserver = new ResizeObserver(() => {
-    syncQuizSidebarHeight();
-  });
-  quizLayoutObserver.observe(quizHeroPanel);
-  quizLayoutObserver.observe(quizQuestionPanel);
-}
 
 resetQuiz();
-syncQuizSidebarHeight();
 </script>
 {% endblock %}

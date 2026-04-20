@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}科普频道 - 多模态深度伪造检测平台{% endblock %}
+{% block title %}科普频道 - 灵眸鉴真{% endblock %}
 {% block body_class %}page-education{% endblock %}
 {% block main_class %}site-main--education{% endblock %}
 {% block content %}
@@ -87,23 +87,6 @@
 
 <section class="section-block">
   <div class="section-heading">
-    <p class="eyebrow">Fraud Patterns</p>
-    <h2>骗子不是只做一个“假视频”，而是在搭整套信任陷阱</h2>
-    <p>高仿内容只负责打开信任缺口，真正让人上当的，往往是催促、保密、绕流程和切换到陌生渠道这几步。</p>
-  </div>
-  <div class="edu-scenario-grid">
-    {% for scenario in scam_scenarios %}
-    <article class="edu-scenario">
-      <span>{{ scenario.index }}</span>
-      <h3>{{ scenario.title }}</h3>
-      <p>{{ scenario.summary }}</p>
-    </article>
-    {% endfor %}
-  </div>
-</section>
-
-<section class="section-block">
-  <div class="section-heading">
     <p class="eyebrow">How To Spot</p>
     <h2>别把注意力全放在“真假脸”，行为和来源同样重要</h2>
     <p>如果你只盯着像素级瑕疵，反而容易忽略更稳定的危险信号：催转账、要验证码、阻止你回拨、阻止你找第三方确认。</p>
@@ -142,19 +125,26 @@
 <section class="section-block">
   <div class="section-heading">
     <p class="eyebrow">Source Library</p>
-    <h2>素材和参考不要乱抓，优先用官方信息和可复用媒体库</h2>
-    <p>我没有直接把第三方整篇文章和视频搬进项目里，因为那样最容易踩版权。这里已经帮你整理出更稳妥的来源入口。</p>
+    <h2>参考资料与媒体素材优先选用官方来源及可复用资源</h2>
+    <p>为保障展示内容的准确性、规范性与版权合规性，这里整理了权威信息来源与可复用媒体资源，便于在演示页面、答辩材料与科普内容中规范引用。</p>
   </div>
   <div class="edu-resource-groups">
     {% for group in resource_groups %}
-    <section class="edu-resource-group">
+    <section class="edu-resource-group{% if group.compact %} edu-resource-group--compact{% endif %}">
+      {% if not group.compact %}
       <div class="edu-resource-group__head">
         <h3>{{ group.title }}</h3>
         <p>{{ group.summary }}</p>
       </div>
+      {% endif %}
       <div class="edu-resource-list">
         {% for link in group.links %}
         <a class="edu-resource" href="{{ link.url }}" target="_blank" rel="noreferrer">
+          {% if link.cover %}
+          <div class="edu-resource__cover">
+            <img src="{{ link.cover }}" alt="{{ link.name }}" loading="lazy" />
+          </div>
+          {% endif %}
           <strong>{{ link.name }}</strong>
           <span>{{ link.meta }}</span>
         </a>
@@ -164,7 +154,7 @@
     {% endfor %}
   </div>
   <p class="inline-note">
-    使用建议：文章类内容优先“摘要 + 原链接 + 你的讲解”；图片 / 视频素材优先下载单个素材页后核对许可，不要整站镜像或去水印搬运。
+    使用建议：文字内容宜采用“摘要说明 + 原始链接 + 规范标注”的呈现方式；图片与视频素材应逐项核验授权范围、署名要求及使用限制。
   </p>
 </section>
 
