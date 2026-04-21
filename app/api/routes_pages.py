@@ -32,9 +32,8 @@ def page_index(request: Request, services: ServiceContainer = Depends(get_servic
     templates = get_templates(services)
     history_summary = services.history_service.get_history_summary(recent_limit=10)
     return templates.TemplateResponse(
-        request=request,
-        name="index.html",
-        context={
+        "index.html",
+        {
             "request": request,
             "demo_video": str(services.settings.demo_video_path.name),
             "history_summary": history_summary,
@@ -47,16 +46,15 @@ def page_index(request: Request, services: ServiceContainer = Depends(get_servic
 @router.get("/welcome", response_class=HTMLResponse)
 def page_welcome(request: Request, services: ServiceContainer = Depends(get_services)):
     templates = get_templates(services)
-    return templates.TemplateResponse(request=request, name="welcome.html", context={"request": request})
+    return templates.TemplateResponse("welcome.html", {"request": request})
 
 
 @router.get("/chat", response_class=HTMLResponse)
 def page_chat(request: Request, services: ServiceContainer = Depends(get_services)):
     templates = get_templates(services)
     return templates.TemplateResponse(
-        request=request,
-        name="chat.html",
-        context={
+        "chat.html",
+        {
             "request": request,
             "ai_chat_ready": services.chat_service.is_ready(),
         },
@@ -67,9 +65,8 @@ def page_chat(request: Request, services: ServiceContainer = Depends(get_service
 def page_education(request: Request, services: ServiceContainer = Depends(get_services)):
     templates = get_templates(services)
     return templates.TemplateResponse(
-        request=request,
-        name="education.html",
-        context={
+        "education.html",
+        {
             "request": request,
             "education_tracks": EDUCATION_TRACKS,
             "scam_scenarios": SCAM_SCENARIOS,
@@ -85,9 +82,8 @@ def page_education(request: Request, services: ServiceContainer = Depends(get_se
 def page_quiz(request: Request, services: ServiceContainer = Depends(get_services)):
     templates = get_templates(services)
     return templates.TemplateResponse(
-        request=request,
-        name="quiz.html",
-        context={
+        "quiz.html",
+        {
             "request": request,
             "quiz_questions": QUIZ_QUESTIONS,
             "quiz_badges": QUIZ_BADGES,
@@ -98,19 +94,19 @@ def page_quiz(request: Request, services: ServiceContainer = Depends(get_service
 @router.get("/detect/image", response_class=HTMLResponse)
 def page_detect_image(request: Request, services: ServiceContainer = Depends(get_services)):
     templates = get_templates(services)
-    return templates.TemplateResponse(request=request, name="detect_image.html", context={"request": request})
+    return templates.TemplateResponse("detect_image.html", {"request": request})
 
 
 @router.get("/detect/video", response_class=HTMLResponse)
 def page_detect_video(request: Request, services: ServiceContainer = Depends(get_services)):
     templates = get_templates(services)
-    return templates.TemplateResponse(request=request, name="detect_video.html", context={"request": request})
+    return templates.TemplateResponse("detect_video.html", {"request": request})
 
 
 @router.get("/detect/audio", response_class=HTMLResponse)
 def page_detect_audio(request: Request, services: ServiceContainer = Depends(get_services)):
     templates = get_templates(services)
-    return templates.TemplateResponse(request=request, name="detect_audio.html", context={"request": request})
+    return templates.TemplateResponse("detect_audio.html", {"request": request})
 
 
 @router.get("/results/{task_id}", response_class=HTMLResponse)
@@ -154,9 +150,8 @@ def page_result(
                     break
 
     return templates.TemplateResponse(
-        request=request,
-        name="result.html",
-        context={
+        "result.html",
+        {
             "request": request,
             "task_id": task_id,
             "batch": batch,
@@ -172,9 +167,8 @@ def page_history(request: Request, services: ServiceContainer = Depends(get_serv
     items = services.history_service.list_records(limit=200)
     history_summary = services.history_service.get_history_summary(recent_limit=20)
     return templates.TemplateResponse(
-        request=request,
-        name="history.html",
-        context={
+        "history.html",
+        {
             "request": request,
             "items": items,
             "history_summary": history_summary,
@@ -206,9 +200,8 @@ def page_history_detail(task_id: str, request: Request, services: ServiceContain
         )
 
     return templates.TemplateResponse(
-        request=request,
-        name="history_detail.html",
-        context={
+        "history_detail.html",
+        {
             "request": request,
             "task_id": task_id,
             "batch": batch,

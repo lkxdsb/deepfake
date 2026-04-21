@@ -1,0 +1,4 @@
+template_id,template_name,metrics
+C,Compute,"latency(us)|read_bytes(B)|write_bytes(B)|io_bytes(B)|mem_bw(GB/s)|calc_flops|calc_flops_power(tflops)|calc_mem_ratio|kernels"
+X,XCCL,"latency(us)|algo_size(B)|bus_size(B)|algo_bw(GB/s)|bus_bw(GB/s)|kernels"
+X+,XCCL_Rank_Aggregation,"algo_bw_sum(GB/s)|bus_bw_sum(GB/s)|latency_list(us)|algo_bw_list(GB/s)|bus_bw_list(GB/s)"

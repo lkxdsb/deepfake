@@ -1,0 +1,17 @@
+major_category,subgroup,operators,metric_template
+basic,vector_linear_ops,"add|sub|mul|cast",C
+basic,vector_sfu_ops,"div|sin|cos|exp|log|sqrt",C
+basic,vector_reduction_ops,"reduce_max|reduce_min|reduce_sum|topk",C
+basic,vector_norm_ops,"layer_norm|rms_norm|softmax",C
+basic,vector_activation_ops,"gelu|silu",C
+basic,vector_index_ops,"embedding|gather|index_select|scatter|index_add",C
+basic,tensor_gemm_ops,"gemm",C
+llm,pre_fa_ops,"rotary_embedding|store_kv_cache",C
+llm,fa_ops,"flash_attention",C
+llm,gemm_ops,"moe_gating_gemm|quant_matmul|moe_quant_group_gemm",C
+llm,moe_dispatch_ops,"moe_scatter_dynamic_quant",C
+llm,moe_combine_ops,"moe_gather|moe_quant_group_gemm_combine",C
+llm,ccl_ops,"all_reduce|reduce_scatter|all_gather|all_to_all","X|X+"
+xccl_ops,collective,"all_reduce|reduce_scatter|all_gather|all_to_all","X|X+"
+xccl_ops,copy_host_device,"host2device|device2host",X
+xccl_ops,copy_device_device,"device2device",C
