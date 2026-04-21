@@ -38,7 +38,7 @@
     <div id="chat-thread" class="chat-canvas" aria-live="polite">
       <section id="chat-empty" class="chat-empty">
         <p class="chat-empty__eyebrow">Start A Conversation</p>
-        <h2>直接提问，不需要先选模式。</h2>
+        <h2>想了解深度伪造？从这里开始。</h2>
         <p class="chat-empty__lede">可以从检测原理、伪造痕迹、热力图解读、误检漏检解释这些高频问题开始。</p>
         <div class="chat-empty__signals">
           <div>
@@ -68,7 +68,7 @@
           class="chat-composer__input"
           rows="1"
           maxlength="2000"
-          placeholder="输入你关于深度伪造检测的问题..."
+          placeholder="请输入你想了解的问题，例如：什么是 AI 换脸？"
           {% if not ai_chat_ready %}disabled{% endif %}
         ></textarea>
         <button id="chat-submit" class="chat-composer__submit" type="submit" {% if not ai_chat_ready %}disabled{% endif %}>发送</button>
