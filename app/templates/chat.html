@@ -21,10 +21,10 @@
     <div class="chat-sidebar__section">
       <span class="chat-sidebar__label">快捷问题</span>
       <div class="chat-sidebar__prompts">
-        <button class="chat-sidebar__prompt" type="button" data-chat-question="深伪检测和图像篡改检测有什么区别？">深伪检测和图像篡改检测有什么区别</button>
-        <button class="chat-sidebar__prompt" type="button" data-chat-question="为什么视频检测不能只看单帧？">为什么视频检测不能只看单帧</button>
-        <button class="chat-sidebar__prompt" type="button" data-chat-question="为什么结果页要展示热力图、关键帧和概率曲线？">为什么结果页要展示热力图、关键帧和概率曲线</button>
-        <button class="chat-sidebar__prompt" type="button" data-chat-question="答辩时如何解释误检和漏检？">答辩时怎么解释误检和漏检</button>
+        <button class="chat-sidebar__prompt" type="button" data-chat-question="深度伪造和普通修图有什么区别？">深伪和普通修图有何区别？</button>
+        <button class="chat-sidebar__prompt" type="button" data-chat-question="为什么视频检测不能只看单帧画面？">视频检测为何不能只看单帧？</button>
+        <button class="chat-sidebar__prompt" type="button" data-chat-question="热力图、关键帧和概率曲线怎么看？">热力图、关键帧、曲线怎么读？</button>
+        <button class="chat-sidebar__prompt" type="button" data-chat-question="遇到疑似AI换脸内容，应该先看什么？">疑似 AI 换脸先看什么？</button>
       </div>
     </div>
 
@@ -38,23 +38,28 @@
     <div id="chat-thread" class="chat-canvas" aria-live="polite">
       <section id="chat-empty" class="chat-empty">
         <p class="chat-empty__eyebrow">Start A Conversation</p>
-        <h2>想了解深度伪造？从这里开始。</h2>
-        <p class="chat-empty__lede">可以从检测原理、伪造痕迹、热力图解读、误检漏检解释这些高频问题开始。</p>
+        <h2>想了解深度伪造？从这里开始</h2>
+        <p class="chat-empty__lede">可以从检测原理、案例辨别、结果解读、风险防范这四个高频问题开始。</p>
         <div class="chat-empty__signals">
           <div>
             <span>01</span>
-            <strong>原理解释</strong>
-            <p>为什么视频检测必须看时序，而不是只看单帧纹理。</p>
+            <strong>原理入门</strong>
+            <p>深伪如何生成，检测在关注哪些异常线索？</p>
           </div>
           <div>
             <span>02</span>
-            <strong>结果解读</strong>
-            <p>热力图、关键帧和概率曲线分别在说明什么。</p>
+            <strong>案例辨别</strong>
+            <p>疑似 AI 换脸或换声时，普通人先看哪些细节？</p>
           </div>
           <div>
             <span>03</span>
-            <strong>答辩表达</strong>
-            <p>如何说明误检、漏检和模型边界，而不夸大系统能力。</p>
+            <strong>结果解读</strong>
+            <p>热力图、关键帧、概率曲线各自说明什么？</p>
+          </div>
+          <div>
+            <span>04</span>
+            <strong>风险防范</strong>
+            <p>遇到可疑内容，怎样核验信息并降低误判风险？</p>
           </div>
         </div>
       </section>
@@ -86,6 +91,72 @@ const chatEmpty = document.getElementById('chat-empty');
 const chatInput = document.getElementById('chat-input');
 const chatSubmit = document.getElementById('chat-submit');
 const chatMain = document.querySelector('.chat-main');
+const FIXED_QA = {
+  '深度伪造和普通修图有什么区别': [
+    '**一句话**：普通修图是“润色原内容”，深度伪造是“生成并冒充真实身份或事件”。',
+    '',
+    '**你可以用 4 个维度快速区分：**',
+    '1. **目标不同**：修图追求美观；深伪常用于冒充某人说话、做事或制造误导事件。',
+    '2. **技术不同**：修图多是像素级编辑；深伪依赖生成模型（换脸、换声、口型驱动、动作迁移）。',
+    '3. **风险不同**：修图通常是内容加工；深伪涉及身份盗用、诈骗取信、舆情操控和法律风险。',
+    '4. **证据不同**：修图看局部痕迹即可；深伪需要看时序一致性、音画同步、关键帧和概率趋势。',
+    '',
+    '**实战判断建议：**',
+    '- 先核验来源和发布链路，再看画面细节。',
+    '- 遇到“催转账/催验证码/催下载软件”，先停再核验真人身份。',
+    '- 仅凭“看起来像不像”不下结论，至少结合 2-3 类证据。',
+  ].join('\n'),
+  '为什么视频检测不能只看单帧画面': [
+    '**核心原因**：深伪很多破绽不在“某一帧”，而在“帧与帧之间的连续关系”。',
+    '',
+    '**只看单帧会漏掉的 5 类信息：**',
+    '1. **边界稳定性**：脸部边缘、发际线、耳廓在连续帧里是否抖动或跳变。',
+    '2. **时序纹理**：肤质、光影、压缩噪声是否出现不自然闪烁。',
+    '3. **音画同步**：嘴型变化与语音节奏是否对应，延迟是否异常。',
+    '4. **动作物理性**：转头、眨眼、表情过渡是否平滑，是否出现突然“僵硬切换”。',
+    '5. **上下文一致性**：字幕、口播、环境声音和画面行为是否互相支持。',
+    '',
+    '**建议流程**：',
+    '- 先看整段概率曲线是否持续高风险。',
+    '- 再回看关键帧定位具体异常。',
+    '- 最后结合原始来源与时间线做复核，不做“单帧定罪”。',
+  ].join('\n'),
+  '热力图关键帧和概率曲线怎么看': [
+    '**建议按“曲线 -> 帧 -> 区域”三步看：**',
+    '',
+    '1. **概率曲线（先看全局）**',
+    '- 看整体趋势是否长期高于阈值，而不是只看一个峰值。',
+    '- 连续高风险通常比短暂尖峰更可信。',
+    '',
+    '2. **关键帧（再看证据）**',
+    '- 在高风险区间抽帧，检查边缘融合、遮挡关系、反光逻辑、口型对应。',
+    '- 重点找“可复核的具体异常”，便于答辩和留证。',
+    '',
+    '3. **热力图（最后定位）**',
+    '- 看模型关注是否集中在人脸边界、口鼻区域、颈部过渡等高风险点。',
+    '- 若关注区长期漂移到无关背景，也可能提示噪声或误检。',
+    '',
+    '**避免误判的经验：**',
+    '- 不把热力图当“伪造证明”，它是“关注提示”。',
+    '- 结论应由“趋势 + 关键帧 + 来源核验”共同支撑。',
+  ].join('\n'),
+  '遇到疑似ai换脸内容应该先看什么': [
+    '**先做“身份核验”，不要先陷入画面争论。**',
+    '',
+    '**优先级从高到低：**',
+    '1. **先止损**：立即暂停转账、验证码、安装远控软件、屏幕共享。',
+    '2. **换渠道核身**：回拨已知号码、找共同联系人、问只有本人知道的问题。',
+    '3. **再看内容证据**：口型与语音、边缘过渡、反光阴影、时间线是否自洽。',
+    '4. **留痕复核**：保存链接、截图、原文件、时间戳，必要时平台投诉或报警。',
+    '',
+    '**一句实战口诀**：',
+    '“先停，再核身，再看证据，最后处置”。',
+    '',
+    '如果对方持续施压、催你“马上操作”，这本身就是高风险信号。',
+  ].join('\n'),
+};
+const FIXED_STREAM_CHUNK = 5;
+const FIXED_STREAM_DELAY_MS = 95;
 
 function setChatStatus(text, type = 'error') {
   const status = document.getElementById('chat-status');
@@ -151,6 +222,37 @@ function createAssistantBubble() {
   return appendChatBubble('assistant', '');
 }
 
+function normalizeQuestion(text) {
+  return (text || '')
+    .toLowerCase()
+    .replace(/[？?]/g, '')
+    .replace(/[，,、。\s]/g, '')
+    .trim();
+}
+
+function getFixedAnswer(question) {
+  return FIXED_QA[normalizeQuestion(question)] || '';
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function renderFixedAnswerFast(answer) {
+  const assistantBubble = createAssistantBubble();
+  let cursor = 0;
+  assistantBubble.render('正在整理回答...');
+  await sleep(90);
+
+  while (cursor < answer.length) {
+    cursor = Math.min(answer.length, cursor + FIXED_STREAM_CHUNK);
+    assistantBubble.render(answer.slice(0, cursor));
+    await sleep(FIXED_STREAM_DELAY_MS);
+  }
+
+  return assistantBubble;
+}
+
 function toggleChatSubmitting(isSubmitting) {
   const starters = document.querySelectorAll('[data-chat-question]');
   chatInput.disabled = isSubmitting || !chatReady;
@@ -214,6 +316,32 @@ async function askAi(question) {
     setChatStatus('请输入问题后再发送。');
     return;
   }
+
+  const fixedAnswer = getFixedAnswer(cleaned);
+  if (fixedAnswer) {
+    appendChatBubble('user', cleaned);
+    setChatStatus('AI 正在生成回答...', 'pending');
+    toggleChatSubmitting(true);
+    try {
+      await renderFixedAnswerFast(fixedAnswer);
+      chatHistory.push({ role: 'user', content: cleaned });
+      chatHistory.push({ role: 'assistant', content: fixedAnswer });
+      if (chatHistory.length > maxClientHistory) {
+        chatHistory.splice(0, chatHistory.length - maxClientHistory);
+      }
+      setChatStatus('');
+    } catch (err) {
+      appendChatBubble('assistant', '固定回答生成失败，请重试。');
+      setChatStatus(`提问失败：${err.message}`);
+    } finally {
+      chatInput.value = '';
+      autoresizeInput();
+      toggleChatSubmitting(false);
+      chatInput.focus();
+    }
+    return;
+  }
+
   if (!chatReady) {
     setChatStatus('AI 问答当前不可用。请先重启后端服务，让新版本代码生效。');
     return;
