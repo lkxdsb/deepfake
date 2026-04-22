@@ -73,68 +73,131 @@
             </div>
           </div>
 
-          <div class="result-grid">
-            <article class="surface-panel surface-panel--media">
-              <div class="panel-heading">
-                <h3>样本预览</h3>
-                <p>优先展示最适合答辩说明的原始样本内容。</p>
-              </div>
-              {% if item.result.preview_url or item.result.preview_video_url %}
-                {% if item.result.file_type == 'audio' %}
-                  <audio controls class="audio-player">
-                    <source src="{{ item.result.preview_url }}">
-                    你的浏览器不支持音频播放。
-                  </audio>
-                  <p class="inline-note">音频判定规则：{{ item.result.decision_rule or 'fake_prob >= threshold 判为 fake' }}。</p>
-                {% elif item.result.file_type == 'video' and item.result.preview_video_url %}
-                  <video controls preload="metadata" class="result-media result-media--video"{% if item.result.preview_url %} poster="{{ item.result.preview_url }}"{% endif %}>
-                    <source src="{{ item.result.preview_video_url }}" type="video/mp4">
-                    Your browser does not support video playback.
-                  </video>
-                  <p class="inline-note">Boxed preview video: about {% if item.result.preview_duration_sec is defined and item.result.preview_duration_sec is not none %}{{ '%.1f'|format(item.result.preview_duration_sec) }}{% else %}10{% endif %} seconds.</p>
-                {% else %}
-                  <img class="result-media" src="{{ item.result.preview_url }}" alt="preview">
-                {% endif %}
-              {% else %}
-                <p class="inline-note">暂无预览内容。</p>
-              {% endif %}
-            </article>
+          {% set show_inline_heatmap = item.result.file_type == 'image' and item.result.heatmap_url %}
 
-            <article class="surface-panel">
-              <div class="panel-heading">
-                <h3>结果摘要</h3>
-                <p>汇总当前样本最关键的判定指标。</p>
+          {% if show_inline_heatmap %}
+            <div class="result-grid result-grid--image-focus">
+              <article class="surface-panel surface-panel--media">
+                <div class="panel-heading">
+                  <h3>热力图证据</h3>
+                  <p>优先展示模型在空间维度上的关注区域。</p>
+                </div>
+                <img class="result-media" src="{{ item.result.heatmap_url }}" alt="heatmap">
+              </article>
+
+              <div class="result-side-stack">
+                <article class="surface-panel">
+                  <div class="panel-heading">
+                    <h3>结果摘要</h3>
+                    <p>汇总当前样本最关键的判定指标。</p>
+                  </div>
+                  <div class="detail-grid">
+                    <div>文件名</div><div>{{ item.result.file_name }}</div>
+                    <div>文件类型</div><div>{{ item.result.file_type }}</div>
+                    <div>判定结果</div><div>{{ item.result.label|upper }}</div>
+                    <div>置信度</div><div>{{ '%.4f'|format(item.result.score) }}</div>
+                    <div>推理耗时</div><div>{{ '%.4f'|format(item.result.inference_time) }}s</div>
+                    <div>模型版本</div><div>{{ item.result.model_name }}</div>
+                    {% if item.result.fake_prob is defined and item.result.fake_prob is not none %}
+                      <div>伪造概率</div><div>{{ '%.4f'|format(item.result.fake_prob) }}</div>
+                    {% elif item.result.raw_score is defined and item.result.raw_score is not none %}
+                      <div>原始分数</div><div>{{ '%.4f'|format(item.result.raw_score) }}</div>
+                    {% endif %}
+                    {% if item.result.real_prob is defined and item.result.real_prob is not none %}
+                      <div>真实概率</div><div>{{ '%.4f'|format(item.result.real_prob) }}</div>
+                    {% endif %}
+                    {% if item.result.threshold is defined and item.result.threshold is not none %}
+                      <div>判定阈值</div><div>{{ '%.4f'|format(item.result.threshold) }}</div>
+                    {% endif %}
+                    {% if item.result.duration_sec is defined and item.result.duration_sec is not none %}
+                      <div>音频时长</div><div>{{ '%.3f'|format(item.result.duration_sec) }}s</div>
+                    {% endif %}
+                    {% if item.result.best_clip_index is defined and item.result.best_clip_index is not none %}
+                      <div>最佳片段索引</div><div>{{ item.result.best_clip_index }}</div>
+                    {% endif %}
+                    {% if item.result.total_frames is defined and item.result.total_frames is not none %}
+                      <div>总帧数</div><div>{{ item.result.total_frames }}</div>
+                    {% endif %}
+                  </div>
+                </article>
+
+                <article class="surface-panel surface-panel--media surface-panel--preview-compact">
+                  <div class="panel-heading">
+                    <h3>样本预览</h3>
+                    <p>保留原始样本，便于与左侧热力图证据对照查看。</p>
+                  </div>
+                  {% if item.result.preview_url %}
+                    <img class="result-media result-media--compact-preview" src="{{ item.result.preview_url }}" alt="preview">
+                  {% else %}
+                    <p class="inline-note">暂无预览内容。</p>
+                  {% endif %}
+                </article>
               </div>
-              <div class="detail-grid">
-                <div>文件名</div><div>{{ item.result.file_name }}</div>
-                <div>文件类型</div><div>{{ item.result.file_type }}</div>
-                <div>判定结果</div><div>{{ item.result.label|upper }}</div>
-                <div>置信度</div><div>{{ '%.4f'|format(item.result.score) }}</div>
-                <div>推理耗时</div><div>{{ '%.4f'|format(item.result.inference_time) }}s</div>
-                <div>模型版本</div><div>{{ item.result.model_name }}</div>
-                {% if item.result.fake_prob is defined and item.result.fake_prob is not none %}
-                  <div>伪造概率</div><div>{{ '%.4f'|format(item.result.fake_prob) }}</div>
-                {% elif item.result.raw_score is defined and item.result.raw_score is not none %}
-                  <div>原始分数</div><div>{{ '%.4f'|format(item.result.raw_score) }}</div>
+            </div>
+          {% else %}
+            <div class="result-grid">
+              <article class="surface-panel surface-panel--media">
+                <div class="panel-heading">
+                  <h3>样本预览</h3>
+                  <p>优先展示最适合答辩说明的原始样本内容。</p>
+                </div>
+                {% if item.result.preview_url or item.result.preview_video_url %}
+                  {% if item.result.file_type == 'audio' %}
+                    <audio controls class="audio-player">
+                      <source src="{{ item.result.preview_url }}">
+                      你的浏览器不支持音频播放。
+                    </audio>
+                    <p class="inline-note">音频判定规则：{{ item.result.decision_rule or 'fake_prob >= threshold 判为 fake' }}。</p>
+                  {% elif item.result.file_type == 'video' and item.result.preview_video_url %}
+                    <video controls preload="metadata" class="result-media result-media--video"{% if item.result.preview_url %} poster="{{ item.result.preview_url }}"{% endif %}>
+                      <source src="{{ item.result.preview_video_url }}" type="video/mp4">
+                      Your browser does not support video playback.
+                    </video>
+                    <p class="inline-note">Boxed preview video: about {% if item.result.preview_duration_sec is defined and item.result.preview_duration_sec is not none %}{{ '%.1f'|format(item.result.preview_duration_sec) }}{% else %}10{% endif %} seconds.</p>
+                  {% else %}
+                    <img class="result-media" src="{{ item.result.preview_url }}" alt="preview">
+                  {% endif %}
+                {% else %}
+                  <p class="inline-note">暂无预览内容。</p>
                 {% endif %}
-                {% if item.result.real_prob is defined and item.result.real_prob is not none %}
-                  <div>真实概率</div><div>{{ '%.4f'|format(item.result.real_prob) }}</div>
-                {% endif %}
-                {% if item.result.threshold is defined and item.result.threshold is not none %}
-                  <div>判定阈值</div><div>{{ '%.4f'|format(item.result.threshold) }}</div>
-                {% endif %}
-                {% if item.result.duration_sec is defined and item.result.duration_sec is not none %}
-                  <div>音频时长</div><div>{{ '%.3f'|format(item.result.duration_sec) }}s</div>
-                {% endif %}
-                {% if item.result.best_clip_index is defined and item.result.best_clip_index is not none %}
-                  <div>最佳片段索引</div><div>{{ item.result.best_clip_index }}</div>
-                {% endif %}
-                {% if item.result.total_frames is defined and item.result.total_frames is not none %}
-                  <div>总帧数</div><div>{{ item.result.total_frames }}</div>
-                {% endif %}
-              </div>
-            </article>
-          </div>
+              </article>
+
+              <article class="surface-panel">
+                <div class="panel-heading">
+                  <h3>结果摘要</h3>
+                  <p>汇总当前样本最关键的判定指标。</p>
+                </div>
+                <div class="detail-grid">
+                  <div>文件名</div><div>{{ item.result.file_name }}</div>
+                  <div>文件类型</div><div>{{ item.result.file_type }}</div>
+                  <div>判定结果</div><div>{{ item.result.label|upper }}</div>
+                  <div>置信度</div><div>{{ '%.4f'|format(item.result.score) }}</div>
+                  <div>推理耗时</div><div>{{ '%.4f'|format(item.result.inference_time) }}s</div>
+                  <div>模型版本</div><div>{{ item.result.model_name }}</div>
+                  {% if item.result.fake_prob is defined and item.result.fake_prob is not none %}
+                    <div>伪造概率</div><div>{{ '%.4f'|format(item.result.fake_prob) }}</div>
+                  {% elif item.result.raw_score is defined and item.result.raw_score is not none %}
+                    <div>原始分数</div><div>{{ '%.4f'|format(item.result.raw_score) }}</div>
+                  {% endif %}
+                  {% if item.result.real_prob is defined and item.result.real_prob is not none %}
+                    <div>真实概率</div><div>{{ '%.4f'|format(item.result.real_prob) }}</div>
+                  {% endif %}
+                  {% if item.result.threshold is defined and item.result.threshold is not none %}
+                    <div>判定阈值</div><div>{{ '%.4f'|format(item.result.threshold) }}</div>
+                  {% endif %}
+                  {% if item.result.duration_sec is defined and item.result.duration_sec is not none %}
+                    <div>音频时长</div><div>{{ '%.3f'|format(item.result.duration_sec) }}s</div>
+                  {% endif %}
+                  {% if item.result.best_clip_index is defined and item.result.best_clip_index is not none %}
+                    <div>最佳片段索引</div><div>{{ item.result.best_clip_index }}</div>
+                  {% endif %}
+                  {% if item.result.total_frames is defined and item.result.total_frames is not none %}
+                    <div>总帧数</div><div>{{ item.result.total_frames }}</div>
+                  {% endif %}
+                </div>
+              </article>
+            </div>
+          {% endif %}
 
           <article class="surface-panel prevention-panel prevention-panel--{{ item.result.file_type }}">
             <div class="panel-heading prevention-panel__heading">
@@ -206,9 +269,9 @@
             </div>
           </article>
 
-          {% if item.result.heatmap_url or item.result.curve_url %}
+          {% if (item.result.heatmap_url and not show_inline_heatmap) or item.result.curve_url %}
             <div class="result-grid">
-              {% if item.result.heatmap_url %}
+              {% if item.result.heatmap_url and not show_inline_heatmap %}
                 <article class="surface-panel">
                   <div class="panel-heading">
                     <h3>热力图证据</h3>
@@ -218,12 +281,12 @@
                 </article>
               {% endif %}
               {% if item.result.curve_url %}
-                <article class="surface-panel">
+                <article class="surface-panel surface-panel--curve">
                   <div class="panel-heading">
                     <h3>时序曲线</h3>
                     <p>展示视频帧级风险概率变化。</p>
                   </div>
-                  <img class="result-media" src="{{ item.result.curve_url }}" alt="curve">
+                  <img class="result-media result-media--curve" src="{{ item.result.curve_url }}" alt="curve">
                 </article>
               {% endif %}
             </div>

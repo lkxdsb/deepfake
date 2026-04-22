@@ -1,4 +1,4 @@
-﻿from functools import lru_cache
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -717,19 +717,27 @@ def save_curve(probabilities: List[float], out_path: Path) -> None:
         return
 
     if plt is not None:
-        plt.figure(figsize=(10, 3))
-        x = list(range(len(probabilities)))
-        plt.plot(x, probabilities, color="#d62728", linewidth=2)
-        plt.ylim(0.0, 1.0)
-        plt.title("Frame-level Fake Probability")
-        plt.xlabel("Clip Index")
-        plt.ylabel("P(fake)")
-        plt.grid(alpha=0.3)
-        plt.tight_layout()
-        plt.savefig(str(out_path), dpi=150)
-        plt.close()
+        x = np.arange(len(probabilities))
+        fig, ax = plt.subplots(figsize=(10, 2.15), dpi=150)
+        ax.plot(x, probabilities, color="#d62728", linewidth=2.2)
+        ax.fill_between(x, probabilities, 0, color="#d62728", alpha=0.08)
+        ax.set_xlim(0, max(len(probabilities) - 1, 1))
+        ax.set_ylim(0.0, 1.0)
+        ax.set_title("Frame-level Fake Probability", pad=8)
+        ax.set_xlabel("Clip Index")
+        ax.set_ylabel("P(fake)")
+        base_tick_step = max(1, int(np.ceil(max(len(probabilities) - 1, 1) / 8)))
+        tick_step = max(1, base_tick_step // 2)
+        x_ticks = np.arange(0, len(probabilities), tick_step)
+        if len(x_ticks) == 0 or x_ticks[-1] != len(probabilities) - 1:
+            x_ticks = np.append(x_ticks, len(probabilities) - 1)
+        ax.set_xticks(x_ticks)
+        ax.grid(alpha=0.24, linewidth=0.8)
+        ax.margins(x=0.015, y=0.08)
+        fig.subplots_adjust(left=0.075, right=0.995, top=0.84, bottom=0.28)
+        fig.savefig(str(out_path), bbox_inches="tight", pad_inches=0.08)
+        plt.close(fig)
         return
-
     canvas = np.full((400, 900, 3), 255, dtype=np.uint8)
     cv2.rectangle(canvas, (50, 30), (850, 350), (80, 80, 80), 1)
     pts = []
