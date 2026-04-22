@@ -1066,9 +1066,6 @@ p {
   min-height: 100%;
 }
 
-.surface-panel--curve {
-  align-self: start;
-}
 
 .result-media {
   width: 100%;
@@ -1077,9 +1074,6 @@ p {
   background: rgba(255, 255, 255, 0.7);
 }
 
-.result-media--curve {
-  display: block;
-}
 
 .result-media--video {
   aspect-ratio: 16 / 9;

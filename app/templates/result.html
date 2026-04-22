@@ -281,12 +281,12 @@
                 </article>
               {% endif %}
               {% if item.result.curve_url %}
-                <article class="surface-panel surface-panel--curve">
+                <article class="surface-panel">
                   <div class="panel-heading">
                     <h3>时序曲线</h3>
                     <p>展示视频帧级风险概率变化。</p>
                   </div>
-                  <img class="result-media result-media--curve" src="{{ item.result.curve_url }}" alt="curve">
+                  <img class="result-media" src="{{ item.result.curve_url }}" alt="curve">
                 </article>
               {% endif %}
             </div>
