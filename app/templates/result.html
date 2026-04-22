@@ -136,6 +136,76 @@
             </article>
           </div>
 
+          <article class="surface-panel prevention-panel prevention-panel--{{ item.result.file_type }}">
+            <div class="panel-heading prevention-panel__heading">
+              <div>
+                <p class="eyebrow">AI Safety Guidance</p>
+                <h3>AI 防范建议</h3>
+              </div>
+              <p>
+                {% if item.result.file_type == 'video' %}
+                  面向视频深度伪造场景，建议优先做身份复核、细节复看与关键操作延迟确认。
+                {% elif item.result.file_type == 'audio' %}
+                  面向语音仿冒场景，建议优先做主动回拨、声纹异常识别与口令式二次验证。
+                {% else %}
+                  面向图像伪造场景，建议优先做来源核验、局部放大检查与官方渠道交叉确认。
+                {% endif %}
+              </p>
+            </div>
+
+            <div class="prevention-grid">
+              {% if item.result.file_type == 'video' %}
+                <section class="prevention-card">
+                  <span class="prevention-card__index">01</span>
+                  <h4>先做人证复核</h4>
+                  <p>遇到“领导视频指令”“亲友视频求助”等场景，不要只信画面，立即切到电话回拨或线下确认身份。</p>
+                </section>
+                <section class="prevention-card">
+                  <span class="prevention-card__index">02</span>
+                  <h4>重点看动态破绽</h4>
+                  <p>答辩展示时可提醒观众留意口型同步、眨眼频率、发丝边缘、手部动作和光影衔接是否自然连续。</p>
+                </section>
+                <section class="prevention-card">
+                  <span class="prevention-card__index">03</span>
+                  <h4>高风险操作延迟执行</h4>
+                  <p>凡是涉及转账、授权、公开传播的视频内容，都应至少完成一次身份复核和一次原始来源确认后再处理。</p>
+                </section>
+              {% elif item.result.file_type == 'audio' %}
+                <section class="prevention-card">
+                  <span class="prevention-card__index">01</span>
+                  <h4>敏感请求先挂断回拨</h4>
+                  <p>如果音频内容涉及转账、验证码、账号变更等要求，不要在当前通话里处理，挂断后主动拨打本人或官方号码核实。</p>
+                </section>
+                <section class="prevention-card">
+                  <span class="prevention-card__index">02</span>
+                  <h4>留意声音异常一致性</h4>
+                  <p>可重点提示语速过稳、情绪起伏不足、停顿不自然、背景噪声突然切换等典型语音合成特征。</p>
+                </section>
+                <section class="prevention-card">
+                  <span class="prevention-card__index">03</span>
+                  <h4>建立口令式二次验证</h4>
+                  <p>对家人、同事或业务对象，提前约定只有本人知道的问题或口令，遇到重要语音请求时必须补做验证。</p>
+                </section>
+              {% else %}
+                <section class="prevention-card">
+                  <span class="prevention-card__index">01</span>
+                  <h4>先查图片原始来源</h4>
+                  <p>对可疑图片先做以图搜图、发布时间比对和来源账号核验，不要只根据转发截图判断真伪。</p>
+                </section>
+                <section class="prevention-card">
+                  <span class="prevention-card__index">02</span>
+                  <h4>放大看局部细节</h4>
+                  <p>重点查看文字边缘、手指数量、饰品结构、镜面反射和人物轮廓融合处，这些位置更容易暴露生成痕迹。</p>
+                </section>
+                <section class="prevention-card">
+                  <span class="prevention-card__index">03</span>
+                  <h4>关键信息回到官方渠道</h4>
+                  <p>涉及证件、公文、聊天记录、中奖通知等图片时，应回到官网、官方账号或原始系统界面做交叉确认。</p>
+                </section>
+              {% endif %}
+            </div>
+          </article>
+
           {% if item.result.heatmap_url or item.result.curve_url %}
             <div class="result-grid">
               {% if item.result.heatmap_url %}

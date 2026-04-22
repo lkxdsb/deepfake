@@ -6,6 +6,7 @@
   <meta name="description" content="灵眸鉴真：基于 CASE + Bi-ST 与 XLS-R-2B 的图像、视频、音频一体化深伪检测系统。">
   <title>{% block title %}灵眸鉴真{% endblock %}</title>
   <link rel="stylesheet" href="/static/style.css?v={{ asset_version }}">
+  <link rel="icon" type="image/png" href="/static/images/logo.png">
   <script src="/static/chat_markdown.js?v={{ asset_version }}" defer></script>
   {% block head_extra %}{% endblock %}
 </head>
@@ -70,7 +71,9 @@
     <header class="site-header">
       <div class="site-header__inner">
         <a href="/" class="brand">
-          <span class="brand-mark"></span>
+          <span class="brand-mark" aria-hidden="true">
+            <img src="/static/images/logo.png" alt="">
+          </span>
           <span class="brand-copy">
             <strong>灵眸鉴真</strong>
             <span>Deepfake Forensics System</span>
