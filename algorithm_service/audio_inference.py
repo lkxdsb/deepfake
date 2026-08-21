@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 import torch
 
-from app.core.config import Settings
+from algorithm_service.config import Settings
 from audio.inference import (
     AudioDeepfakeInferenceEngine,
     AudioDependencyError,

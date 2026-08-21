@@ -276,53 +276,14 @@ If you have further questions (including commercial use), please contact [Dr. Ju
 
 ---
 
-## Web MVP (FastAPI + Lightweight Frontend)
+## Platform application
 
-This repository now includes a runnable web MVP under `app/` for competition demo scenarios.
+The production application is split into three focused modules:
 
-### Features
-- Image detection API + page
-- Video detection API + page
-- Result page with confidence / keyframes / curve / heatmap (if available)
-- SQLite-based history records and detail page
-- One-click demo inference (built-in sample)
+- `web-frontend/`: Vue 3 and TypeScript single-page application;
+- `java-backend/`: Spring Boot business API, storage, history, and chat;
+- `algorithm_service/`: internal FastAPI adapter for visual and audio model inference.
 
-### Quick Start (Local)
-```bash
-pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-### Quick Start (Server)
-```bash
-pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-### Optional launch scripts
-- Windows: `run_local.ps1`
-- macOS/Linux local: `run_local.sh`
-- macOS/Linux frontend-only: `run_local_frontend.sh`
-- Linux server: `run_server.sh`
-
-### Key environment variables
-- `APP_HOST`
-- `APP_PORT`
-- `APP_RELOAD`
-- `FRONTEND_ONLY`
-- `MODEL_CFG_PATH`
-- `MODEL_CKPT_PATH`
-- `OUTPUT_ROOT`
-- `SQLITE_PATH`
-
-Defaults point to:
-- `logs/DFD-FCG/na2vi8su/setting.yaml`
-- `logs/DFD-FCG/na2vi8su/checkpoints/epoch=29-step=33540.ckpt`
-
-### APIs
-- `GET /api/health`
-- `POST /api/detect/image`
-- `POST /api/detect/video`
-- `GET /api/history`
-- `GET /api/history/{task_id}`
-- `POST /api/demo/run?mode=video|image`
+The Java backend and algorithm service must use the same `OUTPUT_ROOT` so generated evidence can
+be served by the public API. See [`java-backend/README.md`](java-backend/README.md) for setup,
+configuration, and endpoint documentation.

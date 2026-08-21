@@ -10,10 +10,10 @@ from uuid import uuid4
 import cv2
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 
-from app.core.config import settings
-from app.services.audio_inference_service import AudioInferenceService
-from app.services.inference_service import InferenceService
-from app.utils.vis_utils import build_explainability_panel
+from algorithm_service.audio_inference import AudioInferenceService
+from algorithm_service.config import settings
+from algorithm_service.visual_inference import InferenceService
+from algorithm_service.visualization import build_explainability_panel
 
 
 TASK_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,80}$")

@@ -13,10 +13,15 @@ import torch
 
 from src.utility.builtin import ODLightningCLI, ODTrainer
 
-from app.core.config import Settings
-from app.utils.image_utils import load_image_rgb, rgb_to_chw_uint8
-from app.utils.video_utils import chw_rgb_to_bgr, read_video_frames, select_keyframe_indices, sliding_clip_indices
-from app.utils.vis_utils import (
+from algorithm_service.config import Settings
+from algorithm_service.image_utils import load_image_rgb, rgb_to_chw_uint8
+from algorithm_service.video_utils import (
+    chw_rgb_to_bgr,
+    read_video_frames,
+    select_keyframe_indices,
+    sliding_clip_indices,
+)
+from algorithm_service.visualization import (
     crop_image_to_bbox,
     detect_and_crop_primary_face,
     detect_primary_face_bbox,
@@ -517,5 +522,4 @@ class InferenceService:
     def render_image_heatmap(self, image_rgb: np.ndarray, heatmap: np.ndarray) -> np.ndarray:
         image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
         return overlay_heatmap_full(image_bgr, heatmap)
-
 

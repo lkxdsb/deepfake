@@ -1,7 +1,7 @@
 # Lingmou Vue Frontend
 
-Vue 3 single-page frontend for the Java business backend. It replaces the Jinja2 pages while the
-Python application remains responsible only for model inference.
+Vue 3 single-page frontend for the Java business backend. The internal Python service is limited
+to model inference.
 
 ## Stack
 
