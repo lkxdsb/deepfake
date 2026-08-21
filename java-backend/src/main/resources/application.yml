@@ -1,0 +1,38 @@
+server:
+  port: ${APP_PORT:8080}
+  address: ${APP_HOST:0.0.0.0}
+  tomcat:
+    max-swallow-size: -1
+
+spring:
+  application:
+    name: deepfake-java-backend
+  servlet:
+    multipart:
+      max-file-size: ${MAX_UPLOAD_SIZE:500MB}
+      max-request-size: ${MAX_REQUEST_SIZE:2GB}
+  jackson:
+    default-property-inclusion: non_null
+
+deepfake:
+  output-root: ${OUTPUT_ROOT:outputs-java}
+  sqlite-path: ${SQLITE_PATH:outputs-java/app.db}
+  algorithm-base-url: ${ALGORITHM_BASE_URL:http://127.0.0.1:8100}
+  algorithm-connect-timeout-seconds: ${ALGORITHM_CONNECT_TIMEOUT_SECONDS:5}
+  algorithm-read-timeout-seconds: ${ALGORITHM_READ_TIMEOUT_SECONDS:900}
+  max-image-mb: ${MAX_IMAGE_MB:20}
+  max-video-mb: ${MAX_VIDEO_MB:500}
+  max-audio-mb: ${MAX_AUDIO_MB:100}
+  max-batch-files: ${MAX_BATCH_FILES:20}
+  chat:
+    api-key: ${AI_CHAT_API_KEY:}
+    base-url: ${AI_CHAT_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+    model: ${AI_CHAT_MODEL:qwen3.6-plus}
+    temperature: ${AI_CHAT_TEMPERATURE:0.3}
+    max-history-messages: ${AI_CHAT_MAX_HISTORY_MESSAGES:6}
+    connect-timeout-seconds: ${AI_CHAT_CONNECT_TIMEOUT_SECONDS:5}
+    read-timeout-seconds: ${AI_CHAT_READ_TIMEOUT_SECONDS:60}
+
+logging:
+  level:
+    com.lingmou.deepfake: INFO

@@ -1,0 +1,4 @@
+#app { min-height: 100vh; }
+button, input, textarea { font: inherit; }
+.vue-error { color: #b42318; }
+.vue-loading { opacity: .7; }
