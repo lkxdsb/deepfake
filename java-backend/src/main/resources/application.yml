@@ -13,7 +13,6 @@ spring:
       max-request-size: ${MAX_REQUEST_SIZE:2GB}
   jackson:
     default-property-inclusion: non_null
-
 deepfake:
   output-root: ${OUTPUT_ROOT:outputs-java}
   sqlite-path: ${SQLITE_PATH:outputs-java/app.db}
@@ -26,12 +25,47 @@ deepfake:
   max-batch-files: ${MAX_BATCH_FILES:20}
   chat:
     api-key: ${AI_CHAT_API_KEY:}
-    base-url: ${AI_CHAT_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
-    model: ${AI_CHAT_MODEL:qwen3.6-plus}
+    base-url: ${AI_CHAT_BASE_URL:https://integrate.api.nvidia.com/v1}
+    model: ${AI_CHAT_MODEL:nvidia/nemotron-3-nano-30b-a3b}
     temperature: ${AI_CHAT_TEMPERATURE:0.3}
     max-history-messages: ${AI_CHAT_MAX_HISTORY_MESSAGES:6}
+    max-output-tokens: ${AI_CHAT_MAX_OUTPUT_TOKENS:700}
     connect-timeout-seconds: ${AI_CHAT_CONNECT_TIMEOUT_SECONDS:5}
     read-timeout-seconds: ${AI_CHAT_READ_TIMEOUT_SECONDS:60}
+
+  rag:
+    enabled: ${RAG_ENABLED:true}
+    knowledge-base-path: ${RAG_KNOWLEDGE_BASE_PATH:${deepfake.application-root}}
+    index-path: ${RAG_INDEX_PATH:rag-index}
+    source-manifest: ${RAG_SOURCE_MANIFEST:knowledge-base/sources.json}
+    chunk-size: ${RAG_CHUNK_SIZE:800}
+    chunk-overlap: ${RAG_CHUNK_OVERLAP:120}
+    top-k: ${RAG_TOP_K:5}
+    answer-source-k: ${RAG_ANSWER_SOURCE_K:2}
+    rerank-candidate-k: ${RAG_RERANK_CANDIDATE_K:20}
+    rrf-k: ${RAG_RRF_K:60}
+    max-chunks-per-document: ${RAG_MAX_CHUNKS_PER_DOCUMENT:2}
+    min-vector-score: ${RAG_MIN_VECTOR_SCORE:0.47}
+    refusal-threshold: ${RAG_REFUSAL_THRESHOLD:0.01}
+    default-retrieval-mode: ${RAG_DEFAULT_RETRIEVAL_MODE:HYBRID_RERANK}
+    chroma:
+      base-url: ${CHROMA_URL:http://127.0.0.1:8001}
+      collection: ${CHROMA_COLLECTION:lingmou-rag}
+      tenant: ${CHROMA_TENANT:default_tenant}
+      database: ${CHROMA_DATABASE:default_database}
+      auth-token: ${CHROMA_AUTH_TOKEN:}
+      connect-timeout-seconds: ${CHROMA_CONNECT_TIMEOUT_SECONDS:5}
+      read-timeout-seconds: ${CHROMA_READ_TIMEOUT_SECONDS:30}
+    embedding:
+      base-url: ${EMBEDDING_BASE_URL:}
+      api-key: ${EMBEDDING_API_KEY:}
+      model: ${EMBEDDING_MODEL:text-embedding-3-small}
+    reranker:
+      enabled: ${RERANKER_ENABLED:false}
+      base-url: ${RERANKER_URL:}
+      model: ${RERANKER_MODEL:BAAI/bge-reranker-v2-m3}
+      timeout-seconds: ${RERANKER_TIMEOUT_SECONDS:15}
+      max-batch-candidates: ${RERANKER_MAX_BATCH_CANDIDATES:4}
 
 logging:
   level:

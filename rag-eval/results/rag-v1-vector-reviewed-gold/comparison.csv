@@ -1,0 +1,2 @@
+cases,answerableCases,knowledgeBaseRoutingAccuracy,citationPrecision,citationCoverage,mrr,retrievalLatencyP50Ms,retrievalLatencyP95Ms,recallAt1,recallAt3,recallAt5,mode,failedCases,rescored
+101,98,0.7029702970297029,0.18159203980099503,0.7244897959183674,0.5865646258503402,98.579,106.714,0.5,0.6530612244897959,0.7244897959183674,VECTOR,0,True

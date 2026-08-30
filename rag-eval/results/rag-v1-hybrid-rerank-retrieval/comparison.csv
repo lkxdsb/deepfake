@@ -1,0 +1,2 @@
+answerableCases,cases,citationCoverage,citationPrecision,failedCases,knowledgeBaseRoutingAccuracy,mode,mrr,recallAt1,recallAt3,recallAt5,retrievalLatencyP50Ms,retrievalLatencyP95Ms
+98,101,0.7755102040816326,0.1504950495049505,0,0.7524752475247525,HYBRID_RERANK,0.6389455782312925,0.5510204081632653,0.7551020408163265,0.7755102040816326,3841.836,6355.771

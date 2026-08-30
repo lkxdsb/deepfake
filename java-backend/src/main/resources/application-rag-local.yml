@@ -1,0 +1,19 @@
+# Local-only RAG profile. Requires Ollama and the embeddinggemma model.
+# Enable with: SPRING_PROFILES_ACTIVE=rag-local
+# Environment variables still override these values.
+deepfake:
+  rag:
+    # Keep local resource usage low: Reranker is optional and disabled by default.
+    default-retrieval-mode: ${RAG_DEFAULT_RETRIEVAL_MODE:HYBRID}
+    knowledge-base-path: ${RAG_KNOWLEDGE_BASE_PATH:${deepfake.application-root}}
+    index-path: ${RAG_INDEX_PATH:rag-index}
+    source-manifest: ${RAG_SOURCE_MANIFEST:knowledge-base/sources.json}
+    embedding:
+      base-url: ${EMBEDDING_BASE_URL:http://127.0.0.1:11434/v1}
+      api-key: ${EMBEDDING_API_KEY:ollama}
+      model: ${EMBEDDING_MODEL:embeddinggemma}
+    reranker:
+      # Enable only after the local TEI server below is healthy.
+      enabled: ${RERANKER_ENABLED:false}
+      base-url: ${RERANKER_URL:http://127.0.0.1:8002}
+      model: ${RERANKER_MODEL:BAAI/bge-reranker-v2-m3}

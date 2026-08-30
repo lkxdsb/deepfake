@@ -26,3 +26,12 @@ introduction/
 target/
 node_modules/
 web-frontend/dist/
+
+# Local service data
+.data/
+rag-index/
+
+# Keep reproducible RAG evaluation artifacts; other generated result folders remain ignored.
+!rag-eval/
+!rag-eval/results/
+!rag-eval/results/**

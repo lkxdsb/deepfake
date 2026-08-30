@@ -3,6 +3,10 @@ import type {
   ApiEnvelope,
   BatchResult,
   ChatMessage,
+  RagIndexBuildResult,
+  RagIndexStatus,
+  RagChatResponse,
+  RetrievalMode,
   DetectionResult,
   HealthStatus,
   HistoryAnalytics,
@@ -58,9 +62,13 @@ export const api = {
   historyAnalytics: (taskId: string) =>
     unwrap<HistoryAnalytics>(http.get(`/history/${encodeURIComponent(taskId)}/analytics`)),
 
-  ask(question: string, history: ChatMessage[]) {
-    return unwrap<{ answer: string; model: string }>(http.post('/chat/ask', { question, history }))
+  ask(question: string, history: ChatMessage[], retrievalMode?: RetrievalMode) {
+    return unwrap<RagChatResponse>(http.post('/chat/ask', { question, history, retrievalMode }))
   },
+
+  ragIndexStatus: () => unwrap<RagIndexStatus>(http.get('/rag/index/status')),
+  ragIndexUpdate: () => unwrap<RagIndexBuildResult>(http.post('/rag/index/update')),
+  ragIndexRebuild: () => unwrap<RagIndexBuildResult>(http.post('/rag/index/rebuild')),
 }
 
 export function errorMessage(error: unknown): string {

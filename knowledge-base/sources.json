@@ -1,0 +1,175 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "path": "readme.md",
+      "kind": "project",
+      "title": "项目说明"
+    },
+    {
+      "path": "deepfake_detection_system_spec.md",
+      "kind": "project",
+      "title": "深伪检测系统规格"
+    },
+    {
+      "path": "java-backend/README.md",
+      "kind": "project",
+      "title": "Java 后端说明"
+    },
+    {
+      "path": "java-backend/docs/algorithm-contract.md",
+      "kind": "project",
+      "title": "算法服务契约"
+    },
+    {
+      "path": "docs/JSON文件简单说明.md",
+      "kind": "project",
+      "title": "JSON 文件说明"
+    },
+    {
+      "path": "docs/预处理GPU需求说明.md",
+      "kind": "project",
+      "title": "预处理 GPU 需求说明"
+    },
+    {
+      "path": "case_section.tex",
+      "kind": "paper",
+      "title": "CASE 方法说明"
+    },
+    {
+      "path": "method_section.tex",
+      "kind": "paper",
+      "title": "检测方法说明"
+    },
+    {
+      "path": "method_section_compact.tex",
+      "kind": "paper",
+      "title": "检测方法简述"
+    },
+    {
+      "path": "temporal_decoder_section.tex",
+      "kind": "paper",
+      "title": "时序解码器说明"
+    },
+    {
+      "path": "aasist-main/README.md",
+      "kind": "project",
+      "title": "音频检测组件说明"
+    },
+    {
+      "path": "samplepaper.tex",
+      "kind": "paper",
+      "title": "CASE 与 Bi-ST 视频深度伪造检测论文全文"
+    },
+    {
+      "path": "web-frontend/README.md",
+      "kind": "project",
+      "title": "Vue 前端与 Java 后端使用说明"
+    },
+    {
+      "path": "knowledge-base/external/dfd-fcg-cvpr-2025.pdf",
+      "kind": "paper",
+      "title": "DFD-FCG：CVPR 2025 正式论文"
+    },
+    {
+      "path": "knowledge-base/external/aasist-2021.pdf",
+      "kind": "paper",
+      "title": "AASIST：音频反欺骗论文"
+    },
+    {
+      "path": "knowledge-base/external/faceforensics-plusplus-2019.pdf",
+      "kind": "paper",
+      "title": "FaceForensics++：图像伪造基准论文"
+    },
+    {
+      "path": "knowledge-base/external/nist-openmfc-2022-evaluation-plan.pdf",
+      "kind": "reference",
+      "title": "NIST OpenMFC 2022 评测计划"
+    },
+    {
+      "path": "knowledge-base/external/celeb-df-2019.pdf",
+      "kind": "paper",
+      "title": "Celeb-DF：大规模 DeepFake 取证数据集"
+    },
+    {
+      "path": "knowledge-base/external/dfdc-preview-2019.pdf",
+      "kind": "paper",
+      "title": "DFDC Preview：深伪检测挑战数据集"
+    },
+    {
+      "path": "knowledge-base/external/deeperforensics-2020.pdf",
+      "kind": "paper",
+      "title": "DeeperForensics-1.0：真实场景人脸伪造数据集"
+    },
+    {
+      "path": "knowledge-base/external/wilddeepfake-2020.pdf",
+      "kind": "paper",
+      "title": "WildDeepfake：真实世界深伪检测数据集"
+    },
+    {
+      "path": "knowledge-base/external/f3-net-2020.pdf",
+      "kind": "paper",
+      "title": "Deepfake 创建与检测综述"
+    },
+    {
+      "path": "knowledge-base/external/face-xray-2019.pdf",
+      "kind": "paper",
+      "title": "Face X-ray：通用人脸伪造检测"
+    },
+    {
+      "path": "knowledge-base/external/self-blended-images-2022.pdf",
+      "kind": "paper",
+      "title": "Self-Blended Images：自混合图像深伪检测"
+    },
+    {
+      "path": "knowledge-base/external/frequency-face-manipulation-2020.pdf",
+      "kind": "paper",
+      "title": "数字人脸篡改频域检测"
+    },
+    {
+      "path": "knowledge-base/external/xls-r-2021.pdf",
+      "kind": "paper",
+      "title": "XLS-R：跨语言语音表征学习"
+    },
+    {
+      "path": "knowledge-base/external/wav2vec-2-2020.pdf",
+      "kind": "paper",
+      "title": "wav2vec 2.0：自监督语音表征学习"
+    },
+    {
+      "path": "knowledge-base/external/asvspoof-2021-challenge-2021.pdf",
+      "kind": "paper",
+      "title": "ASVspoof 2021：合成与深伪语音检测"
+    },
+    {
+      "path": "knowledge-base/external/asvspoof-2021-evaluation-plan-2021.pdf",
+      "kind": "reference",
+      "title": "ASVspoof 2021 评测计划"
+    },
+    {
+      "path": "knowledge-base/external/c2pa-content-credentials-explainer-2025.pdf",
+      "kind": "reference",
+      "title": "C2PA Content Credentials 溯源说明"
+    },
+    {
+      "path": "knowledge-base/guides/video-temporal-and-compression-evidence.md",
+      "kind": "reference",
+      "title": "视频时序与压缩伪影取证指南"
+    },
+    {
+      "path": "knowledge-base/guides/audio-visual-sync-and-lip-evidence.md",
+      "kind": "reference",
+      "title": "音画同步与嘴型证据复核指南"
+    },
+    {
+      "path": "knowledge-base/guides/heatmap-keyframe-curve-interpretation.md",
+      "kind": "reference",
+      "title": "热力图、关键帧与概率曲线解读指南"
+    },
+    {
+      "path": "knowledge-base/guides/provenance-metadata-and-c2pa.md",
+      "kind": "reference",
+      "title": "媒体溯源、元数据与 C2PA 指南"
+    }
+  ]
+}

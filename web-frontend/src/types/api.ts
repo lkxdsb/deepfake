@@ -118,3 +118,42 @@ export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
 }
+
+export type RetrievalMode = 'VECTOR' | 'HYBRID' | 'HYBRID_RERANK'
+
+export interface RagSource {
+  sourceId: string
+  title: string
+  path: string
+  section: string
+  chunkId: string
+  quote: string
+  score: number
+}
+
+export interface RagChatResponse {
+  answer: string
+  model: string
+  retrievalMode: RetrievalMode
+  sources: RagSource[]
+  refused: boolean
+}
+
+export interface RagIndexStatus {
+  initialized: boolean
+  updatedAt?: string
+  sourceCount: number
+  documentCount: number
+  chunkCount: number
+  indexPath: string
+}
+
+export interface RagIndexBuildResult {
+  fullRebuild: boolean
+  completedAt: string
+  sourceCount: number
+  addedOrChangedDocuments: number
+  unchangedDocuments: number
+  deletedDocuments: number
+  indexedChunks: number
+}

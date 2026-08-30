@@ -98,6 +98,7 @@ public class DeepfakeProperties {
         private String model = "qwen3.6-plus";
         private double temperature = 0.3;
         private int maxHistoryMessages = 6;
+        private int maxOutputTokens = 700;
         private int connectTimeoutSeconds = 5;
         private int readTimeoutSeconds = 60;
 
@@ -139,6 +140,14 @@ public class DeepfakeProperties {
 
         public void setMaxHistoryMessages(int maxHistoryMessages) {
             this.maxHistoryMessages = maxHistoryMessages;
+        }
+
+        public int getMaxOutputTokens() {
+            return maxOutputTokens;
+        }
+
+        public void setMaxOutputTokens(int maxOutputTokens) {
+            this.maxOutputTokens = maxOutputTokens;
         }
 
         public int getConnectTimeoutSeconds() {
